@@ -1,41 +1,66 @@
 import Foundation
 
 final class MockTaskRepository: TaskRepository {
-    func fetchFeaturedTasks() async throws -> [TaskItem] {
-        return [
-            TaskItem(
-                authorName: "Maria Rodriguez",
-                authorAvatarName: nil,
-                createdAtText: "2h ago",
-                distanceText: "1.2km",
-                title: "Help Moving to New Apartment",
-                description: "Need help moving furniture and boxes from a 2-bedroom apartment. Heavy lifting required.",
-                priceText: "$50/hr",
-                imageName: nil,
-                category: .moving
-            ),
-            TaskItem(
-                authorName: "Jennifer Chen",
-                authorAvatarName: nil,
-                createdAtText: "5h ago",
-                distanceText: "0.8km",
-                title: "Need a Babysitter Tonight",
-                description: "Looking for someone reliable to take care of my child from 7 PM to 11 PM.",
-                priceText: "$25/hr",
-                imageName: nil,
-                category: .babysitting
-            ),
-            TaskItem(
-                authorName: "Lucas Green",
-                authorAvatarName: nil,
-                createdAtText: "1d ago",
-                distanceText: "2.4km",
-                title: "Garden Cleanup Needed",
-                description: "Help trimming bushes, collecting leaves, and tidying up the backyard.",
-                priceText: "$30/hr",
-                imageName: nil,
-                category: .gardening
-            )
-        ]
+    private var tasks: [TaskItem] = [
+        TaskItem(
+            id: UUID().uuidString,
+            creatorId: "1",
+            creatorUsername: "Maria Rodriguez",
+            title: "Help Moving to New Apartment",
+            description: "Need help moving furniture and boxes from a 2-bedroom apartment.",
+            category: .moving,
+            city: "Trento",
+            price: 50,
+            photoURLs: [],
+            status: .open,
+            acceptedUserId: nil,
+            createdAt: Date(),
+            updatedAt: Date()
+        ),
+        TaskItem(
+            id: UUID().uuidString,
+            creatorId: "2",
+            creatorUsername: "Jennifer Chen",
+            title: "Babysitting Needed",
+            description: "Looking for a babysitter tonight.",
+            category: .babysitting,
+            city: "Trento",
+            price: 25,
+            photoURLs: [],
+            status: .open,
+            acceptedUserId: nil,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+    ]
+
+    func fetchFeedTasks(city: String?) async throws -> [TaskItem] {
+        guard let city, !city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return tasks.sorted { $0.createdAt > $1.createdAt }
+        }
+
+        return tasks
+            .filter { $0.city.lowercased() == city.lowercased() }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func createTask(input: CreateTaskInput, imageDataList: [Data]) async throws {
+        let newTask = TaskItem(
+            id: UUID().uuidString,
+            creatorId: UUID().uuidString,
+            creatorUsername: "Mock User",
+            title: input.title,
+            description: input.description,
+            category: input.category,
+            city: input.city,
+            price: input.price,
+            photoURLs: [],
+            status: .open,
+            acceptedUserId: nil,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+
+        tasks.insert(newTask, at: 0)
     }
 }

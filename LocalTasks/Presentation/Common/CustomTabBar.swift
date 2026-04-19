@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct CustomTabBar: View {
-    @Binding var selectedTab: RootTab
+    let selectedTab: RootTab
+    let onTabSelected: (RootTab) -> Void
 
     var body: some View {
         HStack(alignment: .bottom) {
@@ -30,7 +31,7 @@ struct CustomTabBar: View {
 
     private var centerButton: some View {
         Button {
-            selectedTab = .create
+            onTabSelected(.create)
         } label: {
             ZStack {
                 Circle()
@@ -55,7 +56,7 @@ struct CustomTabBar: View {
     @ViewBuilder
     private func tabButton(for tab: RootTab, showNotificationDot: Bool = false) -> some View {
         Button {
-            selectedTab = tab
+            onTabSelected(tab)
         } label: {
             VStack(spacing: 6) {
                 ZStack(alignment: .topTrailing) {

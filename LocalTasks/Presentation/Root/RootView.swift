@@ -1,32 +1,25 @@
 import SwiftUI
 
 struct RootView: View {
-    @State private var selectedTab: RootTab = .home
+    @StateObject private var authViewModel: AuthViewModel
+    private let taskRepository: TaskRepository
+
+    init() {
+        let container = AppContainer()
+        self.taskRepository = container.taskRepository
+
+        _authViewModel = StateObject(
+            wrappedValue: AuthViewModel(repository: container.authRepository)
+        )
+    }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            AppColors.background.ignoresSafeArea()
-
-            Group {
-                switch selectedTab {
-                case .home:
-                    HomeView(
-                        viewModel: HomeViewModel(
-                            repository: MockTaskRepository()
-                        )
-                    )
-                case .map:
-                    PlaceholderScreen(title: "Map")
-                case .create:
-                    PlaceholderScreen(title: "Create Task")
-                case .messages:
-                    PlaceholderScreen(title: "Messages")
-                case .profile:
-                    PlaceholderScreen(title: "Profile")
-                }
-            }
-
-            CustomTabBar(selectedTab: $selectedTab)
+        MainTabRootView(
+            authViewModel: authViewModel,
+            taskRepository: taskRepository
+        )
+        .task {
+            await authViewModel.restoreSession()
         }
     }
 }

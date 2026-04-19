@@ -6,7 +6,8 @@ final class HomeViewModel: ObservableObject {
     @Published var categories: [TaskCategory] = TaskCategory.allCases
     @Published var selectedCategory: TaskCategory?
     @Published var tasks: [TaskItem] = []
-    @Published var isLoading: Bool = false
+    @Published var isLoading = false
+    @Published var errorMessage: String?
 
     private let repository: TaskRepository
 
@@ -14,15 +15,16 @@ final class HomeViewModel: ObservableObject {
         self.repository = repository
     }
 
-    func load() async {
+    func load(city: String? = nil) async {
         isLoading = true
+        errorMessage = nil
         defer { isLoading = false }
 
         do {
-            tasks = try await repository.fetchFeaturedTasks()
+            tasks = try await repository.fetchFeedTasks(city: city)
         } catch {
             tasks = []
-            print("Failed to load tasks: \(error)")
+            errorMessage = error.localizedDescription
         }
     }
 

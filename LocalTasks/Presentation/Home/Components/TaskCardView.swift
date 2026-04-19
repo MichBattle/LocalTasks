@@ -21,9 +21,11 @@ struct TaskCardView: View {
 
                     Spacer(minLength: 12)
 
-                    Text(task.priceText)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(AppColors.primary)
+                    if let price = task.price {
+                        Text(priceString(price))
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(AppColors.primary)
+                    }
                 }
 
                 Text(task.description)
@@ -32,7 +34,6 @@ struct TaskCardView: View {
                     .lineSpacing(4)
 
                 Button {
-                    // future: navigate to task detail
                 } label: {
                     Text("View Details")
                         .font(.system(size: 18, weight: .bold))
@@ -67,30 +68,24 @@ struct TaskCardView: View {
             avatarView
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(task.authorName)
+                Text(task.creatorUsername)
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(AppColors.textPrimary)
 
-                Text(task.createdAtText)
+                Text(relativeDateString(from: task.createdAt))
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(AppColors.textSecondary)
             }
 
             Spacer()
 
-            HStack(spacing: 8) {
-                Image(systemName: "location")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(AppColors.primary)
-
-                Text(task.distanceText)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(AppColors.textSecondary)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(Color.gray.opacity(0.08))
-            .clipShape(Capsule())
+            Text(task.city)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(AppColors.textSecondary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Color.gray.opacity(0.08))
+                .clipShape(Capsule())
         }
     }
 
@@ -108,7 +103,27 @@ struct TaskCardView: View {
         }
     }
 
+    @ViewBuilder
     private var coverImage: some View {
+        if let firstURLString = task.photoURLs.first,
+           let url = URL(string: firstURLString) {
+            AsyncImage(url: url) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+            } placeholder: {
+                placeholderImage
+            }
+            .frame(height: 255)
+            .clipped()
+        } else {
+            placeholderImage
+                .frame(height: 255)
+                .clipped()
+        }
+    }
+
+    private var placeholderImage: some View {
         ZStack {
             Rectangle()
                 .fill(task.category.softBackgroundColor)
@@ -119,8 +134,6 @@ struct TaskCardView: View {
                 .frame(width: 82, height: 82)
                 .foregroundStyle(task.category.iconColor.opacity(0.85))
         }
-        .frame(height: 255)
-        .clipped()
     }
 
     private func imageSymbol(for category: TaskCategory) -> String {
@@ -136,5 +149,19 @@ struct TaskCardView: View {
         case .painting:
             return "paintbrush.fill"
         }
+    }
+
+    private func relativeDateString(from date: Date) -> String {
+        RelativeDateTimeFormatter().localizedString(for: date, relativeTo: Date())
+    }
+
+    private func priceString(_ price: Double) -> String {
+        let isWholeNumber = price.truncatingRemainder(dividingBy: 1) == 0
+
+        let value = isWholeNumber
+            ? String(Int(price))
+            : String(format: "%.2f", price)
+
+        return "$\(value)"
     }
 }

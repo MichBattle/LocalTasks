@@ -1,5 +1,6 @@
 import Foundation
 
 protocol TaskRepository {
-    func fetchFeaturedTasks() async throws -> [TaskItem]
+    func fetchFeedTasks(city: String?) async throws -> [TaskItem]
+    func createTask(input: CreateTaskInput, imageDataList: [Data]) async throws
 }

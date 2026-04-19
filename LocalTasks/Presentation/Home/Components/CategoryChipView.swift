@@ -18,7 +18,7 @@ struct CategoryChipView: View {
                         .foregroundStyle(category.iconColor)
                 }
 
-                Text(category.rawValue)
+                Text(category.displayName)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(AppColors.textPrimary)
                     .multilineTextAlignment(.center)

@@ -6,6 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		869C538F2F9530C900D7EE4C /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 869C538E2F9530C900D7EE4C /* GoogleService-Info.plist */; };
+		86B617402F95336C00FBEB5E /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 86B6173F2F95336C00FBEB5E /* FirebaseAuth */; };
+		86B617422F95337300FBEB5E /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 86B617412F95337300FBEB5E /* FirebaseFirestore */; };
+		86B617442F95337900FBEB5E /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 86B617432F95337900FBEB5E /* FirebaseStorage */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		86F839D72F769506008C8DB2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +31,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		869C538E2F9530C900D7EE4C /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		86F839C92F769505008C8DB2 /* LocalTasks.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LocalTasks.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		86F839D62F769506008C8DB2 /* LocalTasksTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LocalTasksTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		86F839E02F769506008C8DB2 /* LocalTasksUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LocalTasksUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -33,6 +41,7 @@
 		86F839F72F769530008C8DB2 /* Exceptions for "App" folder in "LocalTasks" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				AppContainer.swift,
 				LocalTaskApp.swift,
 			);
 			target = 86F839C82F769505008C8DB2 /* LocalTasks */;
@@ -40,6 +49,8 @@
 		86F839FC2F769560008C8DB2 /* Exceptions for "Presentation" folder in "LocalTasks" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Auth/AuthScreen.swift,
+				Auth/AuthViewModel.swift,
 				Common/CustomTabBar.swift,
 				Common/PlaceholderScreen.swift,
 				Home/Components/CategoryChipView.swift,
@@ -47,8 +58,12 @@
 				Home/Components/TaskCardView.swift,
 				Home/HomeView.swift,
 				Home/HomeViewModel.swift,
+				Profile/ProfileView.swift,
+				Root/MainTabRootView.swift,
 				Root/RootTab.swift,
 				Root/RootView.swift,
+				Task/CreateTaskView.swift,
+				Task/CreateTaskViewModel.swift,
 			);
 			target = 86F839C82F769505008C8DB2 /* LocalTasks */;
 		};
@@ -63,14 +78,24 @@
 		86F83A0C2F7695EF008C8DB2 /* Exceptions for "Domain" folder in "LocalTasks" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Enums/TaskCategory.swift,
+				Enums/TaskStatus.swift,
+				Models/ApplicationItem.swift,
+				Models/AppUser.swift,
+				Models/ChatItem.swift,
+				Models/CreateTaskInput.swift,
+				Models/MessageItem.swift,
 				Models/TaskItem.swift,
-				Models/TastCategory.swift,
+				Models/TaskPrivateInfo.swift,
 			);
 			target = 86F839C82F769505008C8DB2 /* LocalTasks */;
 		};
 		86F83A132F76961C008C8DB2 /* Exceptions for "Data" folder in "LocalTasks" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Repositories/AuthRepository.swift,
+				Repositories/FirebaseAuthRepository.swift,
+				Repositories/FirebaseTaskRepository.swift,
 				Repositories/MockTaskRepository.swift,
 				Repositories/TaskRepository.swift,
 			);
@@ -126,6 +151,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				86B617402F95336C00FBEB5E /* FirebaseAuth in Frameworks */,
+				86B617422F95337300FBEB5E /* FirebaseFirestore in Frameworks */,
+				86B617442F95337900FBEB5E /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -146,14 +174,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		86B6173E2F95336C00FBEB5E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		86F839C02F769505008C8DB2 = {
 			isa = PBXGroup;
 			children = (
+				869C538E2F9530C900D7EE4C /* GoogleService-Info.plist */,
 				86F83A0F2F76960C008C8DB2 /* Data */,
 				86F83A082F7695DA008C8DB2 /* Domain */,
 				86F839FF2F769597008C8DB2 /* Core */,
 				86F839F82F76954D008C8DB2 /* Presentation */,
 				86F839F42F76951F008C8DB2 /* App */,
+				86B6173E2F95336C00FBEB5E /* Frameworks */,
 				86F839CA2F769505008C8DB2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -185,6 +222,9 @@
 			);
 			name = LocalTasks;
 			packageProductDependencies = (
+				86B6173F2F95336C00FBEB5E /* FirebaseAuth */,
+				86B617412F95337300FBEB5E /* FirebaseFirestore */,
+				86B617432F95337900FBEB5E /* FirebaseStorage */,
 			);
 			productName = LocalTasks;
 			productReference = 86F839C92F769505008C8DB2 /* LocalTasks.app */;
@@ -263,6 +303,9 @@
 			);
 			mainGroup = 86F839C02F769505008C8DB2;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				869C538D2F95308700D7EE4C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 86F839CA2F769505008C8DB2 /* Products */;
 			projectDirPath = "";
@@ -280,6 +323,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				869C538F2F9530C900D7EE4C /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -641,6 +685,35 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		869C538D2F95308700D7EE4C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.12.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		86B6173F2F95336C00FBEB5E /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 869C538D2F95308700D7EE4C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		86B617412F95337300FBEB5E /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 869C538D2F95308700D7EE4C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		86B617432F95337900FBEB5E /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 869C538D2F95308700D7EE4C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 86F839C12F769505008C8DB2 /* Project object */;
 }

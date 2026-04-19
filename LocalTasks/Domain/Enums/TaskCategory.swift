@@ -1,13 +1,23 @@
 import SwiftUI
 
-enum TaskCategory: String, CaseIterable, Identifiable {
-    case moving = "Moving"
-    case babysitting = "Babysitting"
-    case gardening = "Gardening"
-    case cleaning = "Cleaning"
-    case painting = "Painting"
+enum TaskCategory: String, Codable, CaseIterable, Identifiable {
+    case moving
+    case babysitting
+    case gardening
+    case cleaning
+    case painting
 
     var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .moving: return "Moving"
+        case .babysitting: return "Babysitting"
+        case .gardening: return "Gardening"
+        case .cleaning: return "Cleaning"
+        case .painting: return "Painting"
+        }
+    }
 
     var iconName: String {
         switch self {
