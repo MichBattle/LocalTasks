@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @ObservedObject var authViewModel: AuthViewModel
+    let onLogout: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -40,6 +41,7 @@ struct ProfileView: View {
 
                     Button {
                         authViewModel.signOut()
+                        onLogout()
                     } label: {
                         Text("Logout")
                             .font(.system(size: 18, weight: .bold))

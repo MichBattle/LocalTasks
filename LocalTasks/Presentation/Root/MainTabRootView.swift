@@ -70,6 +70,7 @@ struct MainTabRootView: View {
             NavigationStack {
                 ZStack {
                     AppColors.background.ignoresSafeArea()
+
                     Text("Map")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(AppColors.textPrimary)
@@ -85,6 +86,7 @@ struct MainTabRootView: View {
             NavigationStack {
                 ZStack {
                     AppColors.background.ignoresSafeArea()
+
                     Text("Messages")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(AppColors.textPrimary)
@@ -92,7 +94,10 @@ struct MainTabRootView: View {
             }
 
         case .profile:
-            ProfileView(authViewModel: authViewModel)
+            ProfileView(
+                authViewModel: authViewModel,
+                onLogout: handleLogout
+            )
         }
     }
 
@@ -112,6 +117,11 @@ struct MainTabRootView: View {
         case .home, .map:
             return false
         }
+    }
+
+    private func handleLogout() {
+        selectedTab = .home
+        showAuthSheet = true
     }
 
     private func showTemporaryToast(_ message: String) {
