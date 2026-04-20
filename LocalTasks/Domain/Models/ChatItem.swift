@@ -4,7 +4,7 @@ struct ChatItem: Identifiable, Codable {
     let id: String
     let taskId: String
     let creatorId: String
-    let helperId: String
+    let applicantId: String
     let participantIds: [String]
     let lastMessageText: String?
     let lastMessageSenderId: String?

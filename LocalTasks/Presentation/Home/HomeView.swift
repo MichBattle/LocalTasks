@@ -3,8 +3,20 @@ import SwiftUI
 struct HomeView: View {
     @StateObject private var viewModel: HomeViewModel
 
-    init(viewModel: HomeViewModel) {
+    @ObservedObject var authViewModel: AuthViewModel
+    let applicationRepository: ApplicationRepository
+    let onRequireAuth: () -> Void
+
+    init(
+        viewModel: HomeViewModel,
+        authViewModel: AuthViewModel,
+        applicationRepository: ApplicationRepository,
+        onRequireAuth: @escaping () -> Void
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.authViewModel = authViewModel
+        self.applicationRepository = applicationRepository
+        self.onRequireAuth = onRequireAuth
     }
 
     var body: some View {
@@ -14,7 +26,7 @@ struct HomeView: View {
 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 24) {
-                        HomeHeaderView(notificationCount: 3)
+                        HomeHeaderView(notificationCount: 0)
 
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 16) {
@@ -32,7 +44,17 @@ struct HomeView: View {
 
                         LazyVStack(spacing: 18) {
                             ForEach(viewModel.filteredTasks) { task in
-                                TaskCardView(task: task)
+                                NavigationLink {
+                                    TaskDetailView(
+                                        task: task,
+                                        authViewModel: authViewModel,
+                                        applicationRepository: applicationRepository,
+                                        onRequireAuth: onRequireAuth
+                                    )
+                                } label: {
+                                    TaskCardView(task: task)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                         .padding(.horizontal, 20)

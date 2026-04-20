@@ -1,11 +1,9 @@
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseStorage
 
 final class FirebaseTaskRepository: TaskRepository {
     private let db = Firestore.firestore()
-    private let storage = Storage.storage()
     private let auth = Auth.auth()
 
     func fetchFeedTasks(city: String?) async throws -> [TaskItem] {
@@ -17,10 +15,7 @@ final class FirebaseTaskRepository: TaskRepository {
         }
 
         let snapshot = try await query.getDocuments()
-
-        return snapshot.documents.compactMap { document in
-            try? mapTask(document: document)
-        }
+        return snapshot.documents.compactMap { try? mapTask(document: $0) }
     }
 
     func createTask(input: CreateTaskInput, imageDataList: [Data]) async throws {
@@ -45,12 +40,6 @@ final class FirebaseTaskRepository: TaskRepository {
 
         let taskRef = db.collection("tasks").document()
         let privateTaskRef = db.collection("tasks_private").document(taskRef.documentID)
-
-        let uploadedPhotoURLs = try await uploadImages(
-            taskId: taskRef.documentID,
-            imageDataList: imageDataList
-        )
-
         let now = Date()
 
         let publicData: [String: Any] = [
@@ -61,7 +50,7 @@ final class FirebaseTaskRepository: TaskRepository {
             "category": input.category.rawValue,
             "city": input.city,
             "price": input.price as Any,
-            "photoURLs": uploadedPhotoURLs,
+            "photoURLs": [],
             "status": TaskStatus.open.rawValue,
             "acceptedUserId": NSNull(),
             "createdAt": Timestamp(date: now),
@@ -79,24 +68,48 @@ final class FirebaseTaskRepository: TaskRepository {
         try await batch.commit()
     }
 
-    private func uploadImages(taskId: String, imageDataList: [Data]) async throws -> [String] {
-        guard !imageDataList.isEmpty else { return [] }
+    func fetchTasksCreatedByUser(userId: String) async throws -> [TaskItem] {
+        let snapshot = try await db.collection("tasks")
+            .whereField("creatorId", isEqualTo: userId)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
 
-        var urls: [String] = []
+        return snapshot.documents.compactMap { try? mapTask(document: $0) }
+    }
 
-        for (index, data) in imageDataList.enumerated() {
-            let imageRef = storage.reference()
-                .child("task_images/\(taskId)/image_\(index).jpg")
+    func fetchTask(by id: String) async throws -> TaskItem? {
+        let snapshot = try await db.collection("tasks").document(id).getDocument()
+        guard snapshot.exists, let data = snapshot.data() else { return nil }
 
-            let metadata = StorageMetadata()
-            metadata.contentType = "image/jpeg"
-
-            _ = try await imageRef.putDataAsync(data, metadata: metadata)
-            let url = try await imageRef.downloadURL()
-            urls.append(url.absoluteString)
+        guard
+            let creatorId = data["creatorId"] as? String,
+            let creatorUsername = data["creatorUsername"] as? String,
+            let title = data["title"] as? String,
+            let description = data["description"] as? String,
+            let categoryRawValue = data["category"] as? String,
+            let category = TaskCategory(rawValue: categoryRawValue),
+            let city = data["city"] as? String,
+            let statusRawValue = data["status"] as? String,
+            let status = TaskStatus(rawValue: statusRawValue)
+        else {
+            return nil
         }
 
-        return urls
+        return TaskItem(
+            id: snapshot.documentID,
+            creatorId: creatorId,
+            creatorUsername: creatorUsername,
+            title: title,
+            description: description,
+            category: category,
+            city: city,
+            price: data["price"] as? Double,
+            photoURLs: data["photoURLs"] as? [String] ?? [],
+            status: status,
+            acceptedUserId: data["acceptedUserId"] as? String,
+            createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date(),
+            updatedAt: (data["updatedAt"] as? Timestamp)?.dateValue() ?? Date()
+        )
     }
 
     private func mapTask(document: QueryDocumentSnapshot) throws -> TaskItem {
@@ -120,12 +133,6 @@ final class FirebaseTaskRepository: TaskRepository {
             )
         }
 
-        let price = data["price"] as? Double
-        let photoURLs = data["photoURLs"] as? [String] ?? []
-        let acceptedUserId = data["acceptedUserId"] as? String
-        let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
-        let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue() ?? Date()
-
         return TaskItem(
             id: document.documentID,
             creatorId: creatorId,
@@ -134,12 +141,12 @@ final class FirebaseTaskRepository: TaskRepository {
             description: description,
             category: category,
             city: city,
-            price: price,
-            photoURLs: photoURLs,
+            price: data["price"] as? Double,
+            photoURLs: data["photoURLs"] as? [String] ?? [],
             status: status,
-            acceptedUserId: acceptedUserId,
-            createdAt: createdAt,
-            updatedAt: updatedAt
+            acceptedUserId: data["acceptedUserId"] as? String,
+            createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date(),
+            updatedAt: (data["updatedAt"] as? Timestamp)?.dateValue() ?? Date()
         )
     }
 }

@@ -33,22 +33,19 @@ struct TaskCardView: View {
                     .foregroundStyle(AppColors.textSecondary)
                     .lineSpacing(4)
 
-                Button {
-                } label: {
-                    Text("View Details")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 58)
-                        .background(
-                            LinearGradient(
-                                colors: [AppColors.primaryLight, AppColors.primary],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
+                Text("View Details")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 58)
+                    .background(
+                        LinearGradient(
+                            colors: [AppColors.primaryLight, AppColors.primary],
+                            startPoint: .leading,
+                            endPoint: .trailing
                         )
-                        .clipShape(Capsule())
-                }
+                    )
+                    .clipShape(Capsule())
             }
             .padding(18)
         }

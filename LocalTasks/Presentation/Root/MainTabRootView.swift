@@ -2,7 +2,11 @@ import SwiftUI
 
 struct MainTabRootView: View {
     @ObservedObject var authViewModel: AuthViewModel
+
+    private let userRepository: UserRepository
     private let taskRepository: TaskRepository
+    private let applicationRepository: ApplicationRepository
+    private let chatRepository: ChatRepository
 
     @State private var selectedTab: RootTab = .home
     @State private var showAuthSheet = false
@@ -10,9 +14,18 @@ struct MainTabRootView: View {
     @State private var toastMessage: String?
     @State private var showToast = false
 
-    init(authViewModel: AuthViewModel, taskRepository: TaskRepository) {
+    init(
+        authViewModel: AuthViewModel,
+        userRepository: UserRepository,
+        taskRepository: TaskRepository,
+        applicationRepository: ApplicationRepository,
+        chatRepository: ChatRepository
+    ) {
         self.authViewModel = authViewModel
+        self.userRepository = userRepository
         self.taskRepository = taskRepository
+        self.applicationRepository = applicationRepository
+        self.chatRepository = chatRepository
     }
 
     var body: some View {
@@ -21,10 +34,12 @@ struct MainTabRootView: View {
 
             currentContent
 
-            CustomTabBar(
-                selectedTab: selectedTab,
-                onTabSelected: handleTabSelection
-            )
+            if !isTabBarHidden {
+                CustomTabBar(
+                    selectedTab: selectedTab,
+                    onTabSelected: handleTabSelection
+                )
+            }
 
             if showToast, let toastMessage {
                 VStack {
@@ -63,14 +78,16 @@ struct MainTabRootView: View {
         switch selectedTab {
         case .home:
             HomeView(
-                viewModel: HomeViewModel(repository: taskRepository)
+                viewModel: HomeViewModel(repository: taskRepository),
+                authViewModel: authViewModel,
+                applicationRepository: applicationRepository,
+                onRequireAuth: { showAuthSheet = true }
             )
 
         case .map:
             NavigationStack {
                 ZStack {
                     AppColors.background.ignoresSafeArea()
-
                     Text("Map")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(AppColors.textPrimary)
@@ -83,22 +100,29 @@ struct MainTabRootView: View {
             )
 
         case .messages:
-            NavigationStack {
-                ZStack {
-                    AppColors.background.ignoresSafeArea()
-
-                    Text("Messages")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(AppColors.textPrimary)
+            MessagesListView(
+                authViewModel: authViewModel,
+                userRepository: userRepository,
+                taskRepository: taskRepository,
+                chatRepository: chatRepository,
+                onExit: {
+                    selectedTab = .home
                 }
-            }
+            )
 
         case .profile:
             ProfileView(
                 authViewModel: authViewModel,
+                taskRepository: taskRepository,
+                applicationRepository: applicationRepository,
+                chatRepository: chatRepository,
                 onLogout: handleLogout
             )
         }
+    }
+
+    private var isTabBarHidden: Bool {
+        selectedTab == .messages
     }
 
     private func handleTabSelection(_ tab: RootTab) {
@@ -130,14 +154,10 @@ struct MainTabRootView: View {
 
         Task {
             try? await Task.sleep(for: .seconds(2))
-            await MainActor.run {
-                showToast = false
-            }
+            await MainActor.run { showToast = false }
 
             try? await Task.sleep(for: .milliseconds(250))
-            await MainActor.run {
-                toastMessage = nil
-            }
+            await MainActor.run { toastMessage = nil }
         }
     }
 }
