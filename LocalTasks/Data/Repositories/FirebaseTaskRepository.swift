@@ -8,10 +8,11 @@ final class FirebaseTaskRepository: TaskRepository {
 
     func fetchFeedTasks(city: String?) async throws -> [TaskItem] {
         var query: Query = db.collection("tasks")
+            .whereField("status", isEqualTo: TaskStatus.open.rawValue)
             .order(by: "createdAt", descending: true)
 
         if let city, !city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            query = query.whereField("city", isEqualTo: city)
+            query = query.whereField("cityCanonical", isEqualTo: city)
         }
 
         let snapshot = try await query.getDocuments()
@@ -42,24 +43,36 @@ final class FirebaseTaskRepository: TaskRepository {
         let privateTaskRef = db.collection("tasks_private").document(taskRef.documentID)
         let now = Date()
 
+        let approx = Self.generateApproximateCoordinate(
+            latitude: input.address.latitude,
+            longitude: input.address.longitude,
+            minDistanceMeters: 700,
+            maxDistanceMeters: 1800
+        )
+
         let publicData: [String: Any] = [
             "creatorId": currentUser.uid,
             "creatorUsername": username,
             "title": input.title,
             "description": input.description,
             "category": input.category.rawValue,
-            "city": input.city,
+            "cityName": input.address.cityName,
+            "cityCanonical": input.address.cityCanonical,
             "price": input.price as Any,
             "photoURLs": [],
             "status": TaskStatus.open.rawValue,
             "acceptedUserId": NSNull(),
+            "approxLatitude": approx.latitude,
+            "approxLongitude": approx.longitude,
             "createdAt": Timestamp(date: now),
             "updatedAt": Timestamp(date: now)
         ]
 
         let privateData: [String: Any] = [
             "taskId": taskRef.documentID,
-            "fullAddress": input.fullAddress
+            "fullAddress": input.address.fullAddress,
+            "exactLatitude": input.address.latitude,
+            "exactLongitude": input.address.longitude
         ]
 
         let batch = db.batch()
@@ -88,7 +101,7 @@ final class FirebaseTaskRepository: TaskRepository {
             let description = data["description"] as? String,
             let categoryRawValue = data["category"] as? String,
             let category = TaskCategory(rawValue: categoryRawValue),
-            let city = data["city"] as? String,
+            let city = data["cityName"] as? String,
             let statusRawValue = data["status"] as? String,
             let status = TaskStatus(rawValue: statusRawValue)
         else {
@@ -107,6 +120,8 @@ final class FirebaseTaskRepository: TaskRepository {
             photoURLs: data["photoURLs"] as? [String] ?? [],
             status: status,
             acceptedUserId: data["acceptedUserId"] as? String,
+            approxLatitude: data["approxLatitude"] as? Double,
+            approxLongitude: data["approxLongitude"] as? Double,
             createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date(),
             updatedAt: (data["updatedAt"] as? Timestamp)?.dateValue() ?? Date()
         )
@@ -122,7 +137,7 @@ final class FirebaseTaskRepository: TaskRepository {
             let description = data["description"] as? String,
             let categoryRawValue = data["category"] as? String,
             let category = TaskCategory(rawValue: categoryRawValue),
-            let city = data["city"] as? String,
+            let city = data["cityName"] as? String,
             let statusRawValue = data["status"] as? String,
             let status = TaskStatus(rawValue: statusRawValue)
         else {
@@ -145,8 +160,39 @@ final class FirebaseTaskRepository: TaskRepository {
             photoURLs: data["photoURLs"] as? [String] ?? [],
             status: status,
             acceptedUserId: data["acceptedUserId"] as? String,
+            approxLatitude: data["approxLatitude"] as? Double,
+            approxLongitude: data["approxLongitude"] as? Double,
             createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date(),
             updatedAt: (data["updatedAt"] as? Timestamp)?.dateValue() ?? Date()
+        )
+    }
+
+    private static func generateApproximateCoordinate(
+        latitude: Double,
+        longitude: Double,
+        minDistanceMeters: Double,
+        maxDistanceMeters: Double
+    ) -> (latitude: Double, longitude: Double) {
+        let distance = Double.random(in: minDistanceMeters...maxDistanceMeters)
+        let bearing = Double.random(in: 0...(2 * .pi))
+
+        let earthRadius = 6_371_000.0
+        let latRad = latitude * .pi / 180
+        let lonRad = longitude * .pi / 180
+
+        let newLatRad = asin(
+            sin(latRad) * cos(distance / earthRadius) +
+            cos(latRad) * sin(distance / earthRadius) * cos(bearing)
+        )
+
+        let newLonRad = lonRad + atan2(
+            sin(bearing) * sin(distance / earthRadius) * cos(latRad),
+            cos(distance / earthRadius) - sin(latRad) * sin(newLatRad)
+        )
+
+        return (
+            latitude: newLatRad * 180 / .pi,
+            longitude: newLonRad * 180 / .pi
         )
     }
 }

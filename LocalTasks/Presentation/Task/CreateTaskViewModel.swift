@@ -6,8 +6,6 @@ final class CreateTaskViewModel: ObservableObject {
     @Published var title = ""
     @Published var description = ""
     @Published var selectedCategory: TaskCategory = .moving
-    @Published var city = ""
-    @Published var fullAddress = ""
     @Published var priceText = ""
 
     @Published var isLoading = false
@@ -15,16 +13,38 @@ final class CreateTaskViewModel: ObservableObject {
     @Published var successMessage: String?
 
     private let repository: TaskRepository
+    private let reviewRepository: ReviewRepository
+    private let currentUserId: String?
 
-    init(repository: TaskRepository) {
+    init(
+        repository: TaskRepository,
+        reviewRepository: ReviewRepository,
+        currentUserId: String?
+    ) {
         self.repository = repository
+        self.reviewRepository = reviewRepository
+        self.currentUserId = currentUserId
     }
 
-    func createTask(imageDataList: [Data]) async -> Bool {
+    func createTask(address: AddressSelection?) async -> Bool {
+        guard let currentUserId else {
+            errorMessage = "Authentication required"
+            return false
+        }
+
+        do {
+            let hasPending = try await reviewRepository.hasPendingReviews(userId: currentUserId)
+            if hasPending {
+                errorMessage = "You must complete your pending reviews before creating a new task"
+                return false
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedCity = city.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedAddress = fullAddress.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmedTitle.isEmpty else {
             errorMessage = "Title is required"
@@ -36,13 +56,8 @@ final class CreateTaskViewModel: ObservableObject {
             return false
         }
 
-        guard !trimmedCity.isEmpty else {
-            errorMessage = "City is required"
-            return false
-        }
-
-        guard !trimmedAddress.isEmpty else {
-            errorMessage = "Address is required"
+        guard let address else {
+            errorMessage = "Please select a valid address from the suggestions"
             return false
         }
 
@@ -67,12 +82,11 @@ final class CreateTaskViewModel: ObservableObject {
                 title: trimmedTitle,
                 description: trimmedDescription,
                 category: selectedCategory,
-                city: trimmedCity,
-                fullAddress: trimmedAddress,
+                address: address,
                 price: parsedPrice
             )
 
-            try await repository.createTask(input: input, imageDataList: imageDataList)
+            try await repository.createTask(input: input, imageDataList: [])
             successMessage = "Task created successfully"
             resetForm()
             return true
@@ -86,8 +100,6 @@ final class CreateTaskViewModel: ObservableObject {
         title = ""
         description = ""
         selectedCategory = .moving
-        city = ""
-        fullAddress = ""
         priceText = ""
     }
 }

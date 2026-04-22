@@ -1,15 +1,17 @@
 import SwiftUI
+import MapKit
 
 struct AuthScreen: View {
     @ObservedObject var authViewModel: AuthViewModel
     let onAuthSuccess: (String) -> Void
+
+    @StateObject private var citySearchViewModel = CitySearchViewModel()
 
     @State private var isLoginMode = true
 
     @State private var email = ""
     @State private var password = ""
     @State private var username = ""
-    @State private var city = ""
 
     var body: some View {
         NavigationStack {
@@ -35,11 +37,18 @@ struct AuthScreen: View {
                         VStack(spacing: 16) {
                             if !isLoginMode {
                                 inputField("Username", text: $username)
-                                inputField("City", text: $city)
+                                citySelector
                             }
 
                             inputField("Email", text: $email, keyboardType: .emailAddress)
                             secureInputField("Password", text: $password)
+                        }
+
+                        if let cityError = citySearchViewModel.errorMessage, !isLoginMode {
+                            Text(cityError)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.red)
+                                .multilineTextAlignment(.center)
                         }
 
                         if let errorMessage = authViewModel.errorMessage {
@@ -58,11 +67,16 @@ struct AuthScreen: View {
                                         onAuthSuccess("Login effettuato")
                                     }
                                 } else {
+                                    guard let selectedCity = citySearchViewModel.selectedCity else {
+                                        authViewModel.errorMessage = "Please select a valid city"
+                                        return
+                                    }
+
                                     await authViewModel.signUp(
                                         email: email,
                                         password: password,
                                         username: username,
-                                        city: city
+                                        city: selectedCity
                                     )
 
                                     if authViewModel.isAuthenticated {
@@ -131,6 +145,64 @@ struct AuthScreen: View {
         }
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var citySelector: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("City")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(AppColors.textSecondary)
+
+            TextField(
+                "Select your city",
+                text: Binding(
+                    get: { citySearchViewModel.query },
+                    set: { citySearchViewModel.updateQuery($0) }
+                )
+            )
+            .textInputAutocapitalization(.words)
+            .autocorrectionDisabled()
+            .padding()
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            if let selectedCity = citySearchViewModel.selectedCity {
+                Text("Selected: \(selectedCity.name)")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.green)
+            }
+
+            if !citySearchViewModel.completions.isEmpty {
+                VStack(spacing: 0) {
+                    ForEach(citySearchViewModel.completions, id: \.self) { completion in
+                        Button {
+                            Task {
+                                await citySearchViewModel.selectCompletion(completion)
+                            }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(completion.title)
+                                    .foregroundStyle(AppColors.textPrimary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                if !completion.subtitle.isEmpty {
+                                    Text(completion.subtitle)
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(AppColors.textSecondary)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                            }
+                            .padding()
+                        }
+                        .buttonStyle(.plain)
+
+                        Divider()
+                    }
+                }
+                .background(Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
     }
 
     private func inputField(

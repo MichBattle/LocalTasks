@@ -11,15 +11,22 @@ final class JobPostCandidatesViewModel: ObservableObject {
     private let task: TaskItem
     private let applicationRepository: ApplicationRepository
     private let chatRepository: ChatRepository
+    private let reviewRepository: ReviewRepository
 
     init(
         task: TaskItem,
         applicationRepository: ApplicationRepository,
-        chatRepository: ChatRepository
+        chatRepository: ChatRepository,
+        reviewRepository: ReviewRepository
     ) {
         self.task = task
         self.applicationRepository = applicationRepository
         self.chatRepository = chatRepository
+        self.reviewRepository = reviewRepository
+    }
+
+    var isTaskCompleted: Bool {
+        task.status == .completed
     }
 
     func load() async {
@@ -64,11 +71,34 @@ final class JobPostCandidatesViewModel: ObservableObject {
         }
     }
 
+    func reset(application: ApplicationDetailsItem) async {
+        do {
+            try await applicationRepository.resetApplicationStatus(
+                applicationId: application.id,
+                taskId: task.id,
+                applicantId: application.applicantId
+            )
+            successMessage = "Application reset to pending"
+            await load()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func contact(application: ApplicationDetailsItem) async throws -> ChatItem {
         return try await chatRepository.getOrCreateChat(
             taskId: task.id,
             creatorId: task.creatorId,
             applicantId: application.applicantId
         )
+    }
+
+    func completeTask(currentUserId: String) async {
+        do {
+            try await reviewRepository.completeTask(task: task, currentUserId: currentUserId)
+            successMessage = "Task marked as completed. Reviews are now required."
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }

@@ -1,10 +1,9 @@
 import SwiftUI
-import PhotosUI
+import MapKit
 
 struct CreateTaskView: View {
     @StateObject private var viewModel: CreateTaskViewModel
-    @State private var selectedPhotos: [PhotosPickerItem] = []
-    @State private var selectedImageDataList: [Data] = []
+    @StateObject private var addressViewModel = AddressSearchViewModel()
 
     init(viewModel: CreateTaskViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -17,29 +16,88 @@ struct CreateTaskView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
-                        Group {
-                            inputField("Title", text: $viewModel.title)
+                        inputField("Title", text: $viewModel.title)
 
-                            multiLineInput(
-                                title: "Description",
-                                text: $viewModel.description,
-                                height: 130
+                        multiLineInput(
+                            title: "Description",
+                            text: $viewModel.description,
+                            height: 130
+                        )
+
+                        categoryPicker
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("It is recommended not to enter your home address when possible")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(.orange)
+
+                            Text("Address")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(AppColors.textSecondary)
+
+                            TextField(
+                                "Start typing an existing street and pick a suggestion",
+                                text: Binding(
+                                    get: { addressViewModel.query },
+                                    set: { addressViewModel.updateQuery($0) }
+                                )
                             )
+                            .padding()
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
-                            categoryPicker
+                            if let selected = addressViewModel.selectedAddress {
+                                Text("Selected: \(selected.fullAddress)")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(.green)
+                            }
 
-                            inputField("City", text: $viewModel.city)
+                            if !addressViewModel.completions.isEmpty {
+                                VStack(spacing: 0) {
+                                    ForEach(addressViewModel.completions, id: \.self) { completion in
+                                        Button {
+                                            Task {
+                                                await addressViewModel.selectCompletion(completion)
+                                            }
+                                        } label: {
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text(completion.title)
+                                                    .foregroundStyle(AppColors.textPrimary)
+                                                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                            multiLineInput(
-                                title: "Full address (hidden until accepted)",
-                                text: $viewModel.fullAddress,
-                                height: 90
-                            )
+                                                if !completion.subtitle.isEmpty {
+                                                    Text(completion.subtitle)
+                                                        .font(.system(size: 13))
+                                                        .foregroundStyle(AppColors.textSecondary)
+                                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                                }
+                                            }
+                                            .padding()
+                                        }
+                                        .buttonStyle(.plain)
+
+                                        Divider()
+                                    }
+                                }
+                                .background(Color.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Payments are handled as donations and are entirely between users")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(.orange)
 
                             inputField("Price (optional)", text: $viewModel.priceText, keyboardType: .decimalPad)
                         }
 
-                        photosSection
+                        if let errorMessage = addressViewModel.errorMessage {
+                            Text(errorMessage)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.red)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
 
                         if let errorMessage = viewModel.errorMessage {
                             Text(errorMessage)
@@ -57,10 +115,13 @@ struct CreateTaskView: View {
 
                         Button {
                             Task {
-                                let created = await viewModel.createTask(imageDataList: selectedImageDataList)
+                                let created = await viewModel.createTask(
+                                    address: addressViewModel.selectedAddress
+                                )
                                 if created {
-                                    selectedPhotos = []
-                                    selectedImageDataList = []
+                                    addressViewModel.query = ""
+                                    addressViewModel.selectedAddress = nil
+                                    addressViewModel.completions = []
                                 }
                             }
                         } label: {
@@ -94,9 +155,6 @@ struct CreateTaskView: View {
             .navigationTitle("Create Task")
             .navigationBarTitleDisplayMode(.inline)
         }
-        .task(id: selectedPhotos) {
-            await loadSelectedImages()
-        }
     }
 
     private var categoryPicker: some View {
@@ -124,48 +182,6 @@ struct CreateTaskView: View {
                 .padding()
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            }
-        }
-    }
-
-    private var photosSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Photos")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(AppColors.textSecondary)
-
-            PhotosPicker(
-                selection: $selectedPhotos,
-                maxSelectionCount: 5,
-                matching: .images
-            ) {
-                HStack {
-                    Image(systemName: "photo.on.rectangle.angled")
-                    Text("Select photos")
-                }
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(AppColors.primary)
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            }
-
-            if !selectedImageDataList.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(Array(selectedImageDataList.enumerated()), id: \.offset) { _, data in
-                            if let image = UIImage(data: data) {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 110, height: 110)
-                                    .clipped()
-                                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            }
-                        }
-                    }
-                }
             }
         }
     }
@@ -205,16 +221,6 @@ struct CreateTaskView: View {
                 .padding(8)
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        }
-    }
-
-    private func loadSelectedImages() async {
-        selectedImageDataList = []
-
-        for item in selectedPhotos {
-            if let data = try? await item.loadTransferable(type: Data.self) {
-                selectedImageDataList.append(data)
-            }
         }
     }
 }

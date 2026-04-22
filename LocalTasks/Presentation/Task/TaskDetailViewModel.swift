@@ -12,10 +12,16 @@ final class TaskDetailViewModel: ObservableObject {
 
     private let task: TaskItem
     private let repository: ApplicationRepository
+    private let reviewRepository: ReviewRepository
 
-    init(task: TaskItem, repository: ApplicationRepository) {
+    init(
+        task: TaskItem,
+        repository: ApplicationRepository,
+        reviewRepository: ReviewRepository
+    ) {
         self.task = task
         self.repository = repository
+        self.reviewRepository = reviewRepository
     }
 
     var canApply: Bool {
@@ -27,19 +33,33 @@ final class TaskDetailViewModel: ObservableObject {
         guard let uid = Auth.auth().currentUser?.uid else { return }
 
         do {
-            hasAlreadyApplied = try await repository.hasApplied(taskId: task.id, applicantId: uid)
+            hasAlreadyApplied = try await repository.hasApplied(
+                taskId: task.id,
+                applicantId: uid
+            )
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
     func apply() async {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            errorMessage = "Authentication required"
+            return
+        }
+
         isApplying = true
         errorMessage = nil
         successMessage = nil
         defer { isApplying = false }
 
         do {
+            let hasPending = try await reviewRepository.hasPendingReviews(userId: uid)
+            if hasPending {
+                errorMessage = "You must complete your pending reviews before applying to a new task"
+                return
+            }
+
             try await repository.apply(
                 to: CreateApplicationInput(
                     taskId: task.id,
@@ -47,6 +67,7 @@ final class TaskDetailViewModel: ObservableObject {
                     message: applicationMessage
                 )
             )
+
             hasAlreadyApplied = true
             successMessage = "Application sent successfully"
         } catch {

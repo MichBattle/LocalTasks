@@ -35,6 +35,14 @@ final class FirebaseApplicationRepository: ApplicationRepository {
         let applicationRef = db.collection("applications").document()
         let now = Date()
 
+        let applicantSnapshot = try await db.collection("users").document(currentUser.uid).getDocument()
+        let applicantData = applicantSnapshot.data() ?? [:]
+        let applicantUsername = applicantData["username"] as? String ?? "Unknown user"
+
+        let taskSnapshot = try await db.collection("tasks").document(input.taskId).getDocument()
+        let taskData = taskSnapshot.data() ?? [:]
+        let taskTitle = taskData["title"] as? String ?? "this task"
+
         let data: [String: Any] = [
             "taskId": input.taskId,
             "taskCreatorId": input.taskCreatorId,
@@ -46,6 +54,18 @@ final class FirebaseApplicationRepository: ApplicationRepository {
         ]
 
         try await applicationRef.setData(data)
+
+        let chat = try await getOrCreateChat(
+            taskId: input.taskId,
+            creatorId: input.taskCreatorId,
+            applicantId: currentUser.uid
+        )
+
+        try await sendSystemMessage(
+            chatId: chat.id,
+            senderId: currentUser.uid,
+            text: "Ciao sono \(applicantUsername), mi applico per \(taskTitle)"
+        )
     }
 
     func hasApplied(taskId: String, applicantId: String) async throws -> Bool {
@@ -142,6 +162,15 @@ final class FirebaseApplicationRepository: ApplicationRepository {
         let taskRef = db.collection("tasks").document(taskId)
         let now = Date()
 
+        let taskSnapshot = try await taskRef.getDocument()
+        let taskData = taskSnapshot.data() ?? [:]
+        let taskTitle = taskData["title"] as? String ?? "this task"
+        let creatorId = taskData["creatorId"] as? String ?? ""
+
+        let applicantSnapshot = try await db.collection("users").document(applicantId).getDocument()
+        let applicantData = applicantSnapshot.data() ?? [:]
+        let applicantUsername = applicantData["username"] as? String ?? "This user"
+
         let batch = db.batch()
 
         batch.updateData([
@@ -169,5 +198,149 @@ final class FirebaseApplicationRepository: ApplicationRepository {
         }
 
         try await batch.commit()
+
+        let chat = try await getOrCreateChat(
+            taskId: taskId,
+            creatorId: creatorId,
+            applicantId: applicantId
+        )
+
+        let text: String
+        switch status {
+        case .accepted:
+            let address = try await fetchPrivateAddress(taskId: taskId) ?? "Address unavailable"
+            text = "\(applicantUsername), sei stato accettato per \(taskTitle). Indirizzo: \(address)"
+        case .rejected:
+            text = "\(applicantUsername), la tua candidatura per \(taskTitle) è stata rifiutata"
+        case .pending:
+            text = "\(applicantUsername), la tua candidatura per \(taskTitle) è tornata in pending"
+        case .cancelled:
+            text = "\(applicantUsername), la tua candidatura per \(taskTitle) è stata annullata"
+        }
+
+        try await sendSystemMessage(
+            chatId: chat.id,
+            senderId: creatorId,
+            text: text
+        )
+    }
+
+    func resetApplicationStatus(
+        applicationId: String,
+        taskId: String,
+        applicantId: String
+    ) async throws {
+        let applicationRef = db.collection("applications").document(applicationId)
+        let taskRef = db.collection("tasks").document(taskId)
+        let now = Date()
+
+        let taskSnapshot = try await taskRef.getDocument()
+        let taskData = taskSnapshot.data() ?? [:]
+
+        let currentAcceptedUserId = taskData["acceptedUserId"] as? String
+        let currentTaskStatusRaw = taskData["status"] as? String ?? TaskStatus.open.rawValue
+        let currentTaskStatus = TaskStatus(rawValue: currentTaskStatusRaw) ?? .open
+
+        let batch = db.batch()
+
+        batch.updateData([
+            "status": ApplicationStatus.pending.rawValue,
+            "updatedAt": Timestamp(date: now)
+        ], forDocument: applicationRef)
+
+        if currentAcceptedUserId == applicantId && currentTaskStatus == .inProgress {
+            batch.updateData([
+                "status": TaskStatus.open.rawValue,
+                "acceptedUserId": NSNull(),
+                "updatedAt": Timestamp(date: now)
+            ], forDocument: taskRef)
+        }
+
+        try await batch.commit()
+    }
+
+    private func getOrCreateChat(
+        taskId: String,
+        creatorId: String,
+        applicantId: String
+    ) async throws -> ChatItem {
+        let snapshot = try await db.collection("chats")
+            .whereField("taskId", isEqualTo: taskId)
+            .whereField("creatorId", isEqualTo: creatorId)
+            .whereField("applicantId", isEqualTo: applicantId)
+            .limit(to: 1)
+            .getDocuments()
+
+        if let existing = snapshot.documents.first {
+            let data = existing.data()
+            return ChatItem(
+                id: existing.documentID,
+                taskId: data["taskId"] as? String ?? "",
+                creatorId: data["creatorId"] as? String ?? "",
+                applicantId: data["applicantId"] as? String ?? "",
+                participantIds: data["participantIds"] as? [String] ?? [],
+                lastMessageText: data["lastMessageText"] as? String,
+                lastMessageSenderId: data["lastMessageSenderId"] as? String,
+                lastMessageAt: (data["lastMessageAt"] as? Timestamp)?.dateValue(),
+                createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+            )
+        }
+
+        let chatRef = db.collection("chats").document()
+        let now = Date()
+
+        let data: [String: Any] = [
+            "taskId": taskId,
+            "creatorId": creatorId,
+            "applicantId": applicantId,
+            "participantIds": [creatorId, applicantId],
+            "lastMessageText": "",
+            "lastMessageSenderId": "",
+            "lastMessageAt": Timestamp(date: now),
+            "createdAt": Timestamp(date: now)
+        ]
+
+        try await chatRef.setData(data)
+
+        return ChatItem(
+            id: chatRef.documentID,
+            taskId: taskId,
+            creatorId: creatorId,
+            applicantId: applicantId,
+            participantIds: [creatorId, applicantId],
+            lastMessageText: nil,
+            lastMessageSenderId: nil,
+            lastMessageAt: now,
+            createdAt: now
+        )
+    }
+
+    private func sendSystemMessage(chatId: String, senderId: String, text: String) async throws {
+        let now = Date()
+        let chatRef = db.collection("chats").document(chatId)
+        let messageRef = chatRef.collection("messages").document()
+
+        let batch = db.batch()
+
+        batch.setData([
+            "senderId": senderId,
+            "text": text,
+            "createdAt": Timestamp(date: now),
+            "isRead": false
+        ], forDocument: messageRef)
+
+        batch.updateData([
+            "lastMessageText": text,
+            "lastMessageSenderId": senderId,
+            "lastMessageAt": Timestamp(date: now)
+        ], forDocument: chatRef)
+
+        try await batch.commit()
+    }
+    
+    private func fetchPrivateAddress(taskId: String) async throws -> String? {
+        let snapshot = try await db.collection("tasks_private").document(taskId).getDocument()
+        let data = snapshot.data() ?? [:]
+        return data["fullAddress"] as? String
     }
 }

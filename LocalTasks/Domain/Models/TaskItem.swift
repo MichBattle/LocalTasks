@@ -1,6 +1,6 @@
 import Foundation
 
-struct TaskItem: Identifiable, Codable {
+struct TaskItem: Identifiable, Codable, Hashable {
     let id: String
     let creatorId: String
     let creatorUsername: String
@@ -12,6 +12,8 @@ struct TaskItem: Identifiable, Codable {
     let photoURLs: [String]
     let status: TaskStatus
     let acceptedUserId: String?
+    let approxLatitude: Double?
+    let approxLongitude: Double?
     let createdAt: Date
     let updatedAt: Date
 }

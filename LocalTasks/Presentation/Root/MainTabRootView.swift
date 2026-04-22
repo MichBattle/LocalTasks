@@ -7,6 +7,7 @@ struct MainTabRootView: View {
     private let taskRepository: TaskRepository
     private let applicationRepository: ApplicationRepository
     private let chatRepository: ChatRepository
+    private let reviewRepository: ReviewRepository
 
     @State private var selectedTab: RootTab = .home
     @State private var showAuthSheet = false
@@ -19,13 +20,15 @@ struct MainTabRootView: View {
         userRepository: UserRepository,
         taskRepository: TaskRepository,
         applicationRepository: ApplicationRepository,
-        chatRepository: ChatRepository
+        chatRepository: ChatRepository,
+        reviewRepository: ReviewRepository
     ) {
         self.authViewModel = authViewModel
         self.userRepository = userRepository
         self.taskRepository = taskRepository
         self.applicationRepository = applicationRepository
         self.chatRepository = chatRepository
+        self.reviewRepository = reviewRepository
     }
 
     var body: some View {
@@ -81,22 +84,26 @@ struct MainTabRootView: View {
                 viewModel: HomeViewModel(repository: taskRepository),
                 authViewModel: authViewModel,
                 applicationRepository: applicationRepository,
+                reviewRepository: reviewRepository,
                 onRequireAuth: { showAuthSheet = true }
             )
 
         case .map:
-            NavigationStack {
-                ZStack {
-                    AppColors.background.ignoresSafeArea()
-                    Text("Map")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(AppColors.textPrimary)
-                }
-            }
+            TasksMapView(
+                taskRepository: taskRepository,
+                authViewModel: authViewModel,
+                applicationRepository: applicationRepository,
+                reviewRepository: reviewRepository,
+                onRequireAuth: { showAuthSheet = true }
+            )
 
         case .create:
             CreateTaskView(
-                viewModel: CreateTaskViewModel(repository: taskRepository)
+                viewModel: CreateTaskViewModel(
+                    repository: taskRepository,
+                    reviewRepository: reviewRepository,
+                    currentUserId: authViewModel.currentUser?.id
+                )
             )
 
         case .messages:
@@ -116,6 +123,7 @@ struct MainTabRootView: View {
                 taskRepository: taskRepository,
                 applicationRepository: applicationRepository,
                 chatRepository: chatRepository,
+                reviewRepository: reviewRepository,
                 onLogout: handleLogout
             )
         }

@@ -6,6 +6,7 @@ final class AppContainer {
     let taskRepository: TaskRepository
     let applicationRepository: ApplicationRepository
     let chatRepository: ChatRepository
+    let reviewRepository: ReviewRepository
 
     init() {
         self.authRepository = FirebaseAuthRepository()
@@ -13,5 +14,6 @@ final class AppContainer {
         self.taskRepository = FirebaseTaskRepository()
         self.applicationRepository = FirebaseApplicationRepository()
         self.chatRepository = FirebaseChatRepository()
+        self.reviewRepository = FirebaseReviewRepository()
     }
 }

@@ -44,7 +44,7 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    func signUp(email: String, password: String, username: String, city: String) async {
+    func signUp(email: String, password: String, username: String, city: CitySelection) async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }

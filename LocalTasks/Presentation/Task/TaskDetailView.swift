@@ -11,6 +11,7 @@ struct TaskDetailView: View {
         task: TaskItem,
         authViewModel: AuthViewModel,
         applicationRepository: ApplicationRepository,
+        reviewRepository: ReviewRepository,
         onRequireAuth: @escaping () -> Void
     ) {
         self.task = task
@@ -19,7 +20,8 @@ struct TaskDetailView: View {
         _viewModel = StateObject(
             wrappedValue: TaskDetailViewModel(
                 task: task,
-                repository: applicationRepository
+                repository: applicationRepository,
+                reviewRepository: reviewRepository
             )
         )
     }
@@ -144,7 +146,8 @@ struct TaskDetailView: View {
                         .frame(height: 56)
 
                     if viewModel.isApplying {
-                        ProgressView().tint(.white)
+                        ProgressView()
+                            .tint(.white)
                     } else {
                         Text(viewModel.hasAlreadyApplied ? "Already Applied" : "Apply")
                             .font(.system(size: 18, weight: .bold))
@@ -163,7 +166,9 @@ struct TaskDetailView: View {
         HStack {
             Text(title)
                 .foregroundStyle(AppColors.textSecondary)
+
             Spacer()
+
             Text(value)
                 .foregroundStyle(AppColors.textPrimary)
                 .fontWeight(.semibold)
@@ -177,15 +182,21 @@ struct TaskDetailView: View {
 
     private func priceString(_ price: Double) -> String {
         let isWholeNumber = price.truncatingRemainder(dividingBy: 1) == 0
-        let value = isWholeNumber ? String(Int(price)) : String(format: "%.2f", price)
+        let value = isWholeNumber
+            ? String(Int(price))
+            : String(format: "%.2f", price)
+
         return "€\(value)"
     }
 
     private func statusText(_ status: TaskStatus) -> String {
         switch status {
-        case .open: return "Open"
-        case .inProgress: return "In Progress"
-        case .completed: return "Completed"
+        case .open:
+            return "Open"
+        case .inProgress:
+            return "In Progress"
+        case .completed:
+            return "Completed"
         }
     }
 }

@@ -13,4 +13,10 @@ protocol ApplicationRepository {
         applicantId: String,
         status: ApplicationStatus
     ) async throws
+
+    func resetApplicationStatus(
+        applicationId: String,
+        taskId: String,
+        applicantId: String
+    ) async throws
 }

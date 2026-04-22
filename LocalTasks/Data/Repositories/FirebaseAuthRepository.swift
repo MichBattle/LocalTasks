@@ -40,7 +40,7 @@ final class FirebaseAuthRepository: AuthRepository {
         return try mapUser(id: uid, data: data)
     }
 
-    func signUp(email: String, password: String, username: String, city: String) async throws -> AppUser {
+    func signUp(email: String, password: String, username: String, city: CitySelection) async throws -> AppUser {
         let usernameKey = username.lowercased()
         let usernameRef = db.collection("usernames").document(usernameKey)
 
@@ -51,7 +51,8 @@ final class FirebaseAuthRepository: AuthRepository {
         let userData: [String: Any] = [
             "email": email,
             "username": username,
-            "city": city,
+            "cityName": city.name,
+            "cityCanonical": city.canonicalName,
             "bio": "",
             "profileImageURL": "",
             "ratingAvg": 0.0,
@@ -90,7 +91,7 @@ final class FirebaseAuthRepository: AuthRepository {
                 id: uid,
                 email: email,
                 username: username,
-                city: city,
+                city: city.name,
                 bio: "",
                 profileImageURL: nil,
                 ratingAvg: 0.0,

@@ -5,17 +5,20 @@ struct HomeView: View {
 
     @ObservedObject var authViewModel: AuthViewModel
     let applicationRepository: ApplicationRepository
+    let reviewRepository: ReviewRepository
     let onRequireAuth: () -> Void
 
     init(
         viewModel: HomeViewModel,
         authViewModel: AuthViewModel,
         applicationRepository: ApplicationRepository,
+        reviewRepository: ReviewRepository,
         onRequireAuth: @escaping () -> Void
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.authViewModel = authViewModel
         self.applicationRepository = applicationRepository
+        self.reviewRepository = reviewRepository
         self.onRequireAuth = onRequireAuth
     }
 
@@ -49,6 +52,7 @@ struct HomeView: View {
                                         task: task,
                                         authViewModel: authViewModel,
                                         applicationRepository: applicationRepository,
+                                        reviewRepository: reviewRepository,
                                         onRequireAuth: onRequireAuth
                                     )
                                 } label: {

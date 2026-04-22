@@ -5,6 +5,7 @@ struct ProfileView: View {
     let taskRepository: TaskRepository
     let applicationRepository: ApplicationRepository
     let chatRepository: ChatRepository
+    let reviewRepository: ReviewRepository
     let onLogout: () -> Void
 
     var body: some View {
@@ -44,6 +45,15 @@ struct ProfileView: View {
 
                             VStack(spacing: 14) {
                                 NavigationLink {
+                                    PendingReviewsView(
+                                        currentUserId: user.id,
+                                        reviewRepository: reviewRepository
+                                    )
+                                } label: {
+                                    profileActionCard(title: "Pending Reviews", icon: "star.bubble")
+                                }
+
+                                NavigationLink {
                                     MyApplicationsView(
                                         applicationRepository: applicationRepository,
                                         taskRepository: taskRepository,
@@ -58,6 +68,7 @@ struct ProfileView: View {
                                         taskRepository: taskRepository,
                                         applicationRepository: applicationRepository,
                                         chatRepository: chatRepository,
+                                        reviewRepository: reviewRepository,
                                         authViewModel: authViewModel,
                                         userId: user.id
                                     )
