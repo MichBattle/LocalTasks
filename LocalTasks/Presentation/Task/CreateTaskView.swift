@@ -27,13 +27,11 @@ struct CreateTaskView: View {
                         categoryPicker
 
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("It is recommended not to enter your home address when possible")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(.orange)
-
                             Text("Address")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(AppColors.textSecondary)
+
+                            disclaimerBox("It is recommended not to enter your home address when possible")
 
                             TextField(
                                 "Start typing an existing street and pick a suggestion",
@@ -42,14 +40,22 @@ struct CreateTaskView: View {
                                     set: { addressViewModel.updateQuery($0) }
                                 )
                             )
+                            .textInputAutocapitalization(.words)
+                            .autocorrectionDisabled()
                             .padding()
                             .background(Color.white)
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                             if let selected = addressViewModel.selectedAddress {
-                                Text("Selected: \(selected.fullAddress)")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(.green)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Selected: \(selected.fullAddress)")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(.green)
+
+                                    Text("City: \(selected.cityName)")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(AppColors.textSecondary)
+                                }
                             }
 
                             if !addressViewModel.completions.isEmpty {
@@ -85,15 +91,21 @@ struct CreateTaskView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Payments are handled as donations and are entirely between users")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(.orange)
+                            Text("Price")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(AppColors.textSecondary)
 
-                            inputField("Price (optional)", text: $viewModel.priceText, keyboardType: .decimalPad)
+                            disclaimerBox("Payments are handled as donations and are entirely between users")
+
+                            TextField("Price (optional)", text: $viewModel.priceText)
+                                .keyboardType(.decimalPad)
+                                .padding()
+                                .background(Color.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         }
 
-                        if let errorMessage = addressViewModel.errorMessage {
-                            Text(errorMessage)
+                        if let addressError = addressViewModel.errorMessage {
+                            Text(addressError)
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(.red)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -122,6 +134,7 @@ struct CreateTaskView: View {
                                     addressViewModel.query = ""
                                     addressViewModel.selectedAddress = nil
                                     addressViewModel.completions = []
+                                    addressViewModel.errorMessage = nil
                                 }
                             }
                         } label: {
@@ -222,5 +235,21 @@ struct CreateTaskView: View {
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
+    }
+
+    private func disclaimerBox(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .font(.system(size: 14))
+
+            Text(text)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(AppColors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .background(Color.orange.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
