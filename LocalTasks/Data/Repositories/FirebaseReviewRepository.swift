@@ -3,6 +3,11 @@ import FirebaseFirestore
 
 final class FirebaseReviewRepository: ReviewRepository {
     private let db = Firestore.firestore()
+    private let notificationRepository: NotificationRepository
+
+    init(notificationRepository: NotificationRepository) {
+        self.notificationRepository = notificationRepository
+    }
 
     func completeTask(task: TaskItem, currentUserId: String) async throws {
         guard task.creatorId == currentUserId else {
@@ -62,35 +67,33 @@ final class FirebaseReviewRepository: ReviewRepository {
 
         try await batch.commit()
 
-        let chatSnapshot = try await db.collection("chats")
-            .whereField("taskId", isEqualTo: task.id)
-            .whereField("creatorId", isEqualTo: task.creatorId)
-            .whereField("applicantId", isEqualTo: acceptedUserId)
-            .limit(to: 1)
-            .getDocuments()
+        let chatId = try await notifyChatAboutCompletion(
+            task: task,
+            acceptedUserId: acceptedUserId,
+            now: now
+        )
 
-        if let chatDocument = chatSnapshot.documents.first {
-            let chatRef = db.collection("chats").document(chatDocument.documentID)
-            let messageRef = chatRef.collection("messages").document()
-            let completionText = "Il lavoro \"\(task.title)\" è stato segnato come completato. Ora entrambi dovete lasciare una recensione."
+        try await notificationRepository.createNotification(
+            CreateNotificationInput(
+                recipientId: task.creatorId,
+                type: .taskCompleted,
+                title: "Task completed",
+                message: "The task \"\(task.title)\" was completed. Remember to leave a review.",
+                relatedTaskId: task.id,
+                relatedChatId: chatId
+            )
+        )
 
-            let notifyBatch = db.batch()
-
-            notifyBatch.setData([
-                "senderId": task.creatorId,
-                "text": completionText,
-                "createdAt": Timestamp(date: now),
-                "isRead": false
-            ], forDocument: messageRef)
-
-            notifyBatch.updateData([
-                "lastMessageText": completionText,
-                "lastMessageSenderId": task.creatorId,
-                "lastMessageAt": Timestamp(date: now)
-            ], forDocument: chatRef)
-
-            try await notifyBatch.commit()
-        }
+        try await notificationRepository.createNotification(
+            CreateNotificationInput(
+                recipientId: acceptedUserId,
+                type: .taskCompleted,
+                title: "Task completed",
+                message: "The task \"\(task.title)\" was completed. Remember to leave a review.",
+                relatedTaskId: task.id,
+                relatedChatId: chatId
+            )
+        )
     }
 
     func fetchPendingReviews(for userId: String) async throws -> [PendingReviewDetailsItem] {
@@ -111,10 +114,16 @@ final class FirebaseReviewRepository: ReviewRepository {
                 continue
             }
 
-            let userSnapshot = try await db.collection("users").document(reviewedUserId).getDocument()
+            let userSnapshot = try await db.collection("users")
+                .document(reviewedUserId)
+                .getDocument()
+
             let userData = userSnapshot.data() ?? [:]
 
-            let taskSnapshot = try await db.collection("tasks").document(taskId).getDocument()
+            let taskSnapshot = try await db.collection("tasks")
+                .document(taskId)
+                .getDocument()
+
             let taskData = taskSnapshot.data() ?? [:]
 
             let item = PendingReviewDetailsItem(
@@ -185,6 +194,17 @@ final class FirebaseReviewRepository: ReviewRepository {
         ], forDocument: reviewedUserRef)
 
         try await batch.commit()
+
+        try await notificationRepository.createNotification(
+            CreateNotificationInput(
+                recipientId: reviewedUserId,
+                type: .reviewReceived,
+                title: "New review",
+                message: "You received a new review.",
+                relatedTaskId: taskId,
+                relatedChatId: nil
+            )
+        )
     }
 
     func hasPendingReviews(userId: String) async throws -> Bool {
@@ -195,5 +215,89 @@ final class FirebaseReviewRepository: ReviewRepository {
             .getDocuments()
 
         return !snapshot.documents.isEmpty
+    }
+
+    private func notifyChatAboutCompletion(
+        task: TaskItem,
+        acceptedUserId: String,
+        now: Date
+    ) async throws -> String? {
+        let chatSnapshot = try await db.collection("chats")
+            .whereField("taskId", isEqualTo: task.id)
+            .whereField("creatorId", isEqualTo: task.creatorId)
+            .whereField("applicantId", isEqualTo: acceptedUserId)
+            .limit(to: 1)
+            .getDocuments()
+
+        guard let chatDocument = chatSnapshot.documents.first else {
+            return nil
+        }
+
+        let chatRef = db.collection("chats").document(chatDocument.documentID)
+        let messageRef = chatRef.collection("messages").document()
+        let completionText = "Il lavoro \"\(task.title)\" è stato segnato come completato. Ora entrambi dovete lasciare una recensione."
+
+        let notifyBatch = db.batch()
+
+        notifyBatch.setData([
+            "senderId": task.creatorId,
+            "text": completionText,
+            "createdAt": Timestamp(date: now),
+            "isRead": false
+        ], forDocument: messageRef)
+
+        notifyBatch.updateData([
+            "lastMessageText": completionText,
+            "lastMessageSenderId": task.creatorId,
+            "lastMessageAt": Timestamp(date: now)
+        ], forDocument: chatRef)
+
+        try await notifyBatch.commit()
+
+        return chatDocument.documentID
+    }
+    
+    func fetchReviews(for userId: String) async throws -> [ReviewDetailsItem] {
+        let snapshot = try await db.collection("reviews")
+            .whereField("reviewedUserId", isEqualTo: userId)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+
+        var result: [ReviewDetailsItem] = []
+
+        for document in snapshot.documents {
+            let data = document.data()
+
+            guard
+                let taskId = data["taskId"] as? String,
+                let reviewerId = data["reviewerId"] as? String,
+                let reviewedUserId = data["reviewedUserId"] as? String,
+                let rating = data["rating"] as? Int,
+                let comment = data["comment"] as? String
+            else {
+                continue
+            }
+
+            let reviewerSnapshot = try await db.collection("users")
+                .document(reviewerId)
+                .getDocument()
+
+            let reviewerData = reviewerSnapshot.data() ?? [:]
+
+            result.append(
+                ReviewDetailsItem(
+                    id: document.documentID,
+                    taskId: taskId,
+                    reviewerId: reviewerId,
+                    reviewerUsername: reviewerData["username"] as? String ?? "Unknown user",
+                    reviewedUserId: reviewedUserId,
+                    rating: rating,
+                    comment: comment,
+                    createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+                )
+            )
+        }
+
+        return result
     }
 }

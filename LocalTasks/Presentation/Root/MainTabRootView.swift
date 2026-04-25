@@ -8,6 +8,7 @@ struct MainTabRootView: View {
     private let applicationRepository: ApplicationRepository
     private let chatRepository: ChatRepository
     private let reviewRepository: ReviewRepository
+    private let notificationRepository: NotificationRepository
 
     @State private var selectedTab: RootTab = .home
     @State private var showAuthSheet = false
@@ -21,7 +22,8 @@ struct MainTabRootView: View {
         taskRepository: TaskRepository,
         applicationRepository: ApplicationRepository,
         chatRepository: ChatRepository,
-        reviewRepository: ReviewRepository
+        reviewRepository: ReviewRepository,
+        notificationRepository: NotificationRepository
     ) {
         self.authViewModel = authViewModel
         self.userRepository = userRepository
@@ -29,6 +31,7 @@ struct MainTabRootView: View {
         self.applicationRepository = applicationRepository
         self.chatRepository = chatRepository
         self.reviewRepository = reviewRepository
+        self.notificationRepository = notificationRepository
     }
 
     var body: some View {
@@ -85,12 +88,16 @@ struct MainTabRootView: View {
                 authViewModel: authViewModel,
                 applicationRepository: applicationRepository,
                 reviewRepository: reviewRepository,
+                notificationRepository: notificationRepository,
+                userRepository: userRepository,
+                taskRepository: taskRepository,
                 onRequireAuth: { showAuthSheet = true }
             )
 
         case .map:
             TasksMapView(
                 taskRepository: taskRepository,
+                userRepository: userRepository,
                 authViewModel: authViewModel,
                 applicationRepository: applicationRepository,
                 reviewRepository: reviewRepository,
@@ -112,6 +119,7 @@ struct MainTabRootView: View {
                 userRepository: userRepository,
                 taskRepository: taskRepository,
                 chatRepository: chatRepository,
+                reviewRepository: reviewRepository,
                 onExit: {
                     selectedTab = .home
                 }
@@ -120,6 +128,7 @@ struct MainTabRootView: View {
         case .profile:
             ProfileView(
                 authViewModel: authViewModel,
+                userRepository: userRepository,
                 taskRepository: taskRepository,
                 applicationRepository: applicationRepository,
                 chatRepository: chatRepository,
@@ -162,10 +171,14 @@ struct MainTabRootView: View {
 
         Task {
             try? await Task.sleep(for: .seconds(2))
-            await MainActor.run { showToast = false }
+            await MainActor.run {
+                showToast = false
+            }
 
             try? await Task.sleep(for: .milliseconds(250))
-            await MainActor.run { toastMessage = nil }
+            await MainActor.run {
+                toastMessage = nil
+            }
         }
     }
 }

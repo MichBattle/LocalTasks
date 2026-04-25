@@ -8,15 +8,35 @@ final class ChatDetailViewModel: ObservableObject {
     @Published var messageText = ""
     @Published var isSending = false
     @Published var errorMessage: String?
+    @Published var otherUsername: String?
 
     private let repository: ChatRepository
+    private let userRepository: UserRepository
+    private let otherUserId: String
+
     let chatId: String
 
     private var listener: (any ListenerRegistration)?
 
-    init(chatId: String, repository: ChatRepository) {
+    init(
+        chatId: String,
+        repository: ChatRepository,
+        userRepository: UserRepository,
+        otherUserId: String
+    ) {
         self.chatId = chatId
         self.repository = repository
+        self.userRepository = userRepository
+        self.otherUserId = otherUserId
+    }
+
+    func loadOtherUser() async {
+        do {
+            let user = try await userRepository.fetchUser(by: otherUserId)
+            otherUsername = user?.username ?? "User"
+        } catch {
+            otherUsername = "User"
+        }
     }
 
     func startListening() {
@@ -30,6 +50,7 @@ final class ChatDetailViewModel: ObservableObject {
                 switch result {
                 case .success(let messages):
                     self.messages = messages
+
                 case .failure(let error):
                     self.errorMessage = error.localizedDescription
                 }

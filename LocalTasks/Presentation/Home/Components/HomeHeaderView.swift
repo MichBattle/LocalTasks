@@ -2,43 +2,42 @@ import SwiftUI
 
 struct HomeHeaderView: View {
     let notificationCount: Int
+    let onNotificationsTap: () -> Void
 
     var body: some View {
-        HStack(alignment: .top) {
+        HStack {
             Text("LocalTasks")
-                .font(.system(size: 34, weight: .bold))
+                .font(.system(size: 40, weight: .bold))
                 .foregroundStyle(AppColors.textPrimary)
 
             Spacer()
 
-            ZStack(alignment: .topTrailing) {
-                Button {
-                    // future: open notifications
-                } label: {
-                    ZStack {
-                        Circle()
-                            .fill(Color.white.opacity(0.7))
-                            .frame(width: 52, height: 52)
+            Button {
+                onNotificationsTap()
+            } label: {
+                ZStack(alignment: .topTrailing) {
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 58, height: 58)
+                        .shadow(color: .black.opacity(0.05), radius: 8, y: 4)
 
-                        Image(systemName: "bell")
-                            .font(.system(size: 22, weight: .medium))
-                            .foregroundStyle(AppColors.textSecondary)
-                    }
-                }
+                    Image(systemName: "bell")
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundStyle(AppColors.textSecondary)
+                        .frame(width: 58, height: 58)
 
-                if notificationCount > 0 {
-                    ZStack {
-                        Circle()
-                            .fill(AppColors.badgeBackground)
-                            .frame(width: 22, height: 22)
-
+                    if notificationCount > 0 {
                         Text("\(notificationCount)")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(.white)
+                            .frame(width: 24, height: 24)
+                            .background(Color.red)
+                            .clipShape(Circle())
+                            .offset(x: 4, y: -4)
                     }
-                    .offset(x: 4, y: -2)
                 }
             }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 20)
     }

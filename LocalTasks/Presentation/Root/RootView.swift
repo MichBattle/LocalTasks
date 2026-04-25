@@ -8,6 +8,7 @@ struct RootView: View {
     private let applicationRepository: ApplicationRepository
     private let chatRepository: ChatRepository
     private let reviewRepository: ReviewRepository
+    private let notificationRepository: NotificationRepository
 
     init() {
         let container = AppContainer()
@@ -16,6 +17,7 @@ struct RootView: View {
         self.applicationRepository = container.applicationRepository
         self.chatRepository = container.chatRepository
         self.reviewRepository = container.reviewRepository
+        self.notificationRepository = container.notificationRepository
 
         _authViewModel = StateObject(
             wrappedValue: AuthViewModel(repository: container.authRepository)
@@ -29,7 +31,8 @@ struct RootView: View {
             taskRepository: taskRepository,
             applicationRepository: applicationRepository,
             chatRepository: chatRepository,
-            reviewRepository: reviewRepository
+            reviewRepository: reviewRepository,
+            notificationRepository: notificationRepository
         )
         .task {
             await authViewModel.restoreSession()

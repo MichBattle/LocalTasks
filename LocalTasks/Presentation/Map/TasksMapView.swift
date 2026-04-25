@@ -14,9 +14,12 @@ struct TasksMapView: View {
     let applicationRepository: ApplicationRepository
     let reviewRepository: ReviewRepository
     let onRequireAuth: () -> Void
+    let userRepository: UserRepository
+    let taskRepository: TaskRepository
 
     init(
         taskRepository: TaskRepository,
+        userRepository: UserRepository,
         authViewModel: AuthViewModel,
         applicationRepository: ApplicationRepository,
         reviewRepository: ReviewRepository,
@@ -25,6 +28,9 @@ struct TasksMapView: View {
         _viewModel = StateObject(
             wrappedValue: TasksMapViewModel(taskRepository: taskRepository)
         )
+
+        self.taskRepository = taskRepository
+        self.userRepository = userRepository
         self.authViewModel = authViewModel
         self.applicationRepository = applicationRepository
         self.reviewRepository = reviewRepository
@@ -119,6 +125,8 @@ struct TasksMapView: View {
                     authViewModel: authViewModel,
                     applicationRepository: applicationRepository,
                     reviewRepository: reviewRepository,
+                    userRepository: userRepository,
+                    taskRepository: taskRepository,
                     onRequireAuth: onRequireAuth
                 )
             }

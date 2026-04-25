@@ -5,6 +5,11 @@ import FirebaseFirestore
 final class FirebaseApplicationRepository: ApplicationRepository {
     private let db = Firestore.firestore()
     private let auth = Auth.auth()
+    private let notificationRepository: NotificationRepository
+
+    init(notificationRepository: NotificationRepository) {
+        self.notificationRepository = notificationRepository
+    }
 
     func apply(to input: CreateApplicationInput) async throws {
         guard let currentUser = auth.currentUser else {
@@ -65,6 +70,17 @@ final class FirebaseApplicationRepository: ApplicationRepository {
             chatId: chat.id,
             senderId: currentUser.uid,
             text: "Ciao sono \(applicantUsername), mi applico per \(taskTitle)"
+        )
+
+        try await notificationRepository.createNotification(
+            CreateNotificationInput(
+                recipientId: input.taskCreatorId,
+                type: .newApplication,
+                title: "New application",
+                message: "\(applicantUsername) applied to \(taskTitle)",
+                relatedTaskId: input.taskId,
+                relatedChatId: chat.id
+            )
         )
     }
 
@@ -138,7 +154,7 @@ final class FirebaseApplicationRepository: ApplicationRepository {
                 taskCreatorId: taskCreatorId,
                 applicantId: applicantId,
                 applicantUsername: userData["username"] as? String ?? "Unknown user",
-                applicantCity: userData["city"] as? String ?? "",
+                applicantCity: userData["cityName"] as? String ?? userData["city"] as? String ?? "",
                 applicantRatingAvg: userData["ratingAvg"] as? Double ?? 0.0,
                 applicantRatingCount: userData["ratingCount"] as? Int ?? 0,
                 message: data["message"] as? String,
@@ -206,22 +222,47 @@ final class FirebaseApplicationRepository: ApplicationRepository {
         )
 
         let text: String
+        let notificationType: AppNotificationType
+        let notificationTitle: String
+
         switch status {
         case .accepted:
             let address = try await fetchPrivateAddress(taskId: taskId) ?? "Address unavailable"
             text = "\(applicantUsername), sei stato accettato per \(taskTitle). Indirizzo: \(address)"
+            notificationType = .applicationAccepted
+            notificationTitle = "Application accepted"
+
         case .rejected:
             text = "\(applicantUsername), la tua candidatura per \(taskTitle) è stata rifiutata"
+            notificationType = .applicationRejected
+            notificationTitle = "Application rejected"
+
         case .pending:
             text = "\(applicantUsername), la tua candidatura per \(taskTitle) è tornata in pending"
+            notificationType = .newApplication
+            notificationTitle = "Application reset"
+
         case .cancelled:
             text = "\(applicantUsername), la tua candidatura per \(taskTitle) è stata annullata"
+            notificationType = .applicationRejected
+            notificationTitle = "Application cancelled"
         }
 
         try await sendSystemMessage(
             chatId: chat.id,
             senderId: creatorId,
             text: text
+        )
+
+        try await notificationRepository.createNotification(
+            CreateNotificationInput(
+                recipientId: applicantId,
+                type: notificationType,
+                title: notificationTitle,
+                message: text,
+                relatedTaskId: taskId,
+                relatedChatId: chat.id
+            )
         )
     }
 
@@ -273,14 +314,15 @@ final class FirebaseApplicationRepository: ApplicationRepository {
 
         if let existing = snapshot.documents.first {
             let data = existing.data()
+
             return ChatItem(
                 id: existing.documentID,
                 taskId: data["taskId"] as? String ?? "",
                 creatorId: data["creatorId"] as? String ?? "",
                 applicantId: data["applicantId"] as? String ?? "",
                 participantIds: data["participantIds"] as? [String] ?? [],
-                lastMessageText: data["lastMessageText"] as? String,
-                lastMessageSenderId: data["lastMessageSenderId"] as? String,
+                lastMessageText: emptyToNil(data["lastMessageText"] as? String),
+                lastMessageSenderId: emptyToNil(data["lastMessageSenderId"] as? String),
                 lastMessageAt: (data["lastMessageAt"] as? Timestamp)?.dateValue(),
                 createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
             )
@@ -337,10 +379,15 @@ final class FirebaseApplicationRepository: ApplicationRepository {
 
         try await batch.commit()
     }
-    
+
     private func fetchPrivateAddress(taskId: String) async throws -> String? {
         let snapshot = try await db.collection("tasks_private").document(taskId).getDocument()
         let data = snapshot.data() ?? [:]
         return data["fullAddress"] as? String
+    }
+
+    private func emptyToNil(_ value: String?) -> String? {
+        guard let value, !value.isEmpty else { return nil }
+        return value
     }
 }

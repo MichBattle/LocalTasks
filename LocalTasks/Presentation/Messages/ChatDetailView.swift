@@ -4,13 +4,39 @@ struct ChatDetailView: View {
     let chat: ChatItem
     let currentUserId: String
 
+    let repository: ChatRepository
+    let userRepository: UserRepository
+    let reviewRepository: ReviewRepository
+    let taskRepository: TaskRepository
+
     @StateObject private var viewModel: ChatDetailViewModel
 
-    init(chat: ChatItem, currentUserId: String, repository: ChatRepository) {
+    init(
+        chat: ChatItem,
+        currentUserId: String,
+        repository: ChatRepository,
+        userRepository: UserRepository,
+        reviewRepository: ReviewRepository,
+        taskRepository: TaskRepository
+    ) {
         self.chat = chat
         self.currentUserId = currentUserId
+        self.repository = repository
+        self.userRepository = userRepository
+        self.reviewRepository = reviewRepository
+        self.taskRepository = taskRepository
+
+        let otherUserId = chat.creatorId == currentUserId
+            ? chat.applicantId
+            : chat.creatorId
+
         _viewModel = StateObject(
-            wrappedValue: ChatDetailViewModel(chatId: chat.id, repository: repository)
+            wrappedValue: ChatDetailViewModel(
+                chatId: chat.id,
+                repository: repository,
+                userRepository: userRepository,
+                otherUserId: otherUserId
+            )
         )
     }
 
@@ -29,7 +55,9 @@ struct ChatDetailView: View {
                     LazyVStack(spacing: 10) {
                         ForEach(viewModel.messages) { message in
                             HStack {
-                                if message.senderId == currentUserId { Spacer() }
+                                if message.senderId == currentUserId {
+                                    Spacer()
+                                }
 
                                 VStack(
                                     alignment: message.senderId == currentUserId ? .trailing : .leading,
@@ -56,7 +84,9 @@ struct ChatDetailView: View {
                                 }
                                 .id(message.id)
 
-                                if message.senderId != currentUserId { Spacer() }
+                                if message.senderId != currentUserId {
+                                    Spacer()
+                                }
                             }
                         }
                     }
@@ -84,7 +114,9 @@ struct ChatDetailView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
                 Button {
-                    Task { await viewModel.sendMessage() }
+                    Task {
+                        await viewModel.sendMessage()
+                    }
                 } label: {
                     Image(systemName: "paperplane.fill")
                         .font(.system(size: 20, weight: .bold))
@@ -99,14 +131,44 @@ struct ChatDetailView: View {
             .background(AppColors.background)
         }
         .background(AppColors.background.ignoresSafeArea())
-        .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                NavigationLink {
+                    PublicUserProfileView(
+                        userId: otherUserId,
+                        userRepository: userRepository,
+                        reviewRepository: reviewRepository,
+                        taskRepository: taskRepository
+                    )
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(viewModel.otherUsername ?? "User")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundStyle(AppColors.textPrimary)
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
+                }
+            }
+        }
+        .task {
+            await viewModel.loadOtherUser()
+        }
         .onAppear {
             viewModel.startListening()
         }
         .onDisappear {
             viewModel.stopListening()
         }
+    }
+
+    private var otherUserId: String {
+        chat.creatorId == currentUserId
+            ? chat.applicantId
+            : chat.creatorId
     }
 
     private func timeString(from date: Date) -> String {

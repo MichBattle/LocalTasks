@@ -2,10 +2,13 @@ import SwiftUI
 
 struct ProfileView: View {
     @ObservedObject var authViewModel: AuthViewModel
+
+    let userRepository: UserRepository
     let taskRepository: TaskRepository
     let applicationRepository: ApplicationRepository
     let chatRepository: ChatRepository
     let reviewRepository: ReviewRepository
+
     let onLogout: () -> Void
 
     var body: some View {
@@ -44,6 +47,7 @@ struct ProfileView: View {
                             }
 
                             VStack(spacing: 14) {
+
                                 NavigationLink {
                                     PendingReviewsView(
                                         currentUserId: user.id,
@@ -66,6 +70,7 @@ struct ProfileView: View {
                                 NavigationLink {
                                     MyJobPostsView(
                                         taskRepository: taskRepository,
+                                        userRepository: userRepository,
                                         applicationRepository: applicationRepository,
                                         chatRepository: chatRepository,
                                         reviewRepository: reviewRepository,

@@ -5,6 +5,11 @@ import FirebaseFirestore
 final class FirebaseChatRepository: ChatRepository {
     private let db = Firestore.firestore()
     private let auth = Auth.auth()
+    private let notificationRepository: NotificationRepository
+
+    init(notificationRepository: NotificationRepository) {
+        self.notificationRepository = notificationRepository
+    }
 
     func fetchChats(for userId: String) async throws -> [ChatItem] {
         let snapshot = try await db.collection("chats")
@@ -94,6 +99,11 @@ final class FirebaseChatRepository: ChatRepository {
         ], forDocument: chatRef)
 
         try await batch.commit()
+
+        try await notifyOtherParticipants(
+            chatId: input.chatId,
+            senderId: currentUser.uid
+        )
     }
 
     func getOrCreateChat(
@@ -139,6 +149,41 @@ final class FirebaseChatRepository: ChatRepository {
             lastMessageAt: now,
             createdAt: now
         )
+    }
+
+    private func notifyOtherParticipants(chatId: String, senderId: String) async throws {
+        let chatSnapshot = try await db.collection("chats")
+            .document(chatId)
+            .getDocument()
+
+        let chatData = chatSnapshot.data() ?? [:]
+
+        let participantIds = chatData["participantIds"] as? [String] ?? []
+        let recipientIds = participantIds.filter { $0 != senderId }
+
+        guard !recipientIds.isEmpty else { return }
+
+        let senderSnapshot = try await db.collection("users")
+            .document(senderId)
+            .getDocument()
+
+        let senderData = senderSnapshot.data() ?? [:]
+        let senderUsername = senderData["username"] as? String ?? "Someone"
+
+        let taskId = chatData["taskId"] as? String
+
+        for recipientId in recipientIds {
+            try await notificationRepository.createNotification(
+                CreateNotificationInput(
+                    recipientId: recipientId,
+                    type: .newMessage,
+                    title: "New message",
+                    message: "\(senderUsername) sent you a message",
+                    relatedTaskId: taskId,
+                    relatedChatId: chatId
+                )
+            )
+        }
     }
 
     private func mapChat(_ document: QueryDocumentSnapshot) throws -> ChatItem {

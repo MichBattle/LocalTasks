@@ -2,8 +2,14 @@ import SwiftUI
 
 struct MessagesListView: View {
     @StateObject private var viewModel: MessagesListViewModel
+
     @ObservedObject var authViewModel: AuthViewModel
+
+    private let userRepository: UserRepository
+    private let taskRepository: TaskRepository
     private let chatRepository: ChatRepository
+    private let reviewRepository: ReviewRepository
+
     let onExit: () -> Void
 
     init(
@@ -11,10 +17,14 @@ struct MessagesListView: View {
         userRepository: UserRepository,
         taskRepository: TaskRepository,
         chatRepository: ChatRepository,
+        reviewRepository: ReviewRepository,
         onExit: @escaping () -> Void
     ) {
         self.authViewModel = authViewModel
+        self.userRepository = userRepository
+        self.taskRepository = taskRepository
         self.chatRepository = chatRepository
+        self.reviewRepository = reviewRepository
         self.onExit = onExit
 
         let currentUserId = authViewModel.currentUser?.id ?? ""
@@ -54,7 +64,10 @@ struct MessagesListView: View {
                             ChatDetailView(
                                 chat: row.chat,
                                 currentUserId: authViewModel.currentUser?.id ?? "",
-                                repository: chatRepository
+                                repository: chatRepository,
+                                userRepository: userRepository,
+                                reviewRepository: reviewRepository,
+                                taskRepository: taskRepository
                             )
                         } label: {
                             VStack(alignment: .leading, spacing: 6) {

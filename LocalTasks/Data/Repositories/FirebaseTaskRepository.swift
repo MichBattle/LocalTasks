@@ -5,6 +5,11 @@ import FirebaseFirestore
 final class FirebaseTaskRepository: TaskRepository {
     private let db = Firestore.firestore()
     private let auth = Auth.auth()
+    private let notificationRepository: NotificationRepository
+
+    init(notificationRepository: NotificationRepository) {
+        self.notificationRepository = notificationRepository
+    }
 
     func fetchFeedTasks(city: String?) async throws -> [TaskItem] {
         var query: Query = db.collection("tasks")
@@ -79,6 +84,13 @@ final class FirebaseTaskRepository: TaskRepository {
         batch.setData(publicData, forDocument: taskRef)
         batch.setData(privateData, forDocument: privateTaskRef)
         try await batch.commit()
+
+        try await notifyUsersInSameCity(
+            creatorId: currentUser.uid,
+            cityCanonical: input.address.cityCanonical,
+            taskId: taskRef.documentID,
+            taskTitle: input.title
+        )
     }
 
     func fetchTasksCreatedByUser(userId: String) async throws -> [TaskItem] {
@@ -165,6 +177,34 @@ final class FirebaseTaskRepository: TaskRepository {
             createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date(),
             updatedAt: (data["updatedAt"] as? Timestamp)?.dateValue() ?? Date()
         )
+    }
+
+    private func notifyUsersInSameCity(
+        creatorId: String,
+        cityCanonical: String,
+        taskId: String,
+        taskTitle: String
+    ) async throws {
+        let usersSnapshot = try await db.collection("users")
+            .whereField("cityCanonical", isEqualTo: cityCanonical)
+            .getDocuments()
+
+        for document in usersSnapshot.documents {
+            let userId = document.documentID
+
+            guard userId != creatorId else { continue }
+
+            try await notificationRepository.createNotification(
+                CreateNotificationInput(
+                    recipientId: userId,
+                    type: .newTaskInYourCity,
+                    title: "New task in your city",
+                    message: "A new task was created near you: \(taskTitle)",
+                    relatedTaskId: taskId,
+                    relatedChatId: nil
+                )
+            )
+        }
     }
 
     private static func generateApproximateCoordinate(

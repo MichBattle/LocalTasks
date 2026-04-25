@@ -13,13 +13,18 @@ struct JobPostCandidatesView: View {
     @State private var showCompleteConfirmation = false
 
     private let chatRepository: ChatRepository
+    private let userRepository: UserRepository
+    private let reviewRepository: ReviewRepository
+    private let taskRepository: TaskRepository
 
     init(
         task: TaskItem,
         currentUserId: String,
         applicationRepository: ApplicationRepository,
         chatRepository: ChatRepository,
-        reviewRepository: ReviewRepository
+        reviewRepository: ReviewRepository,
+        userRepository: UserRepository,
+        taskRepository: TaskRepository
     ) {
         self.task = task
         self.currentUserId = currentUserId
@@ -32,6 +37,9 @@ struct JobPostCandidatesView: View {
                 reviewRepository: reviewRepository
             )
         )
+        self.userRepository = userRepository
+        self.reviewRepository = reviewRepository
+        self.taskRepository = taskRepository
     }
 
     var body: some View {
@@ -130,8 +138,11 @@ struct JobPostCandidatesView: View {
                 destination: selectedChat.map {
                     ChatDetailView(
                         chat: $0,
-                        currentUserId: task.creatorId,
-                        repository: chatRepository
+                        currentUserId: currentUserId,
+                        repository: chatRepository,
+                        userRepository: userRepository,
+                        reviewRepository: reviewRepository,
+                        taskRepository: taskRepository
                     )
                 },
                 isActive: Binding(

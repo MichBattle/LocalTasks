@@ -7,10 +7,13 @@ struct MyJobPostsView: View {
     let applicationRepository: ApplicationRepository
     let chatRepository: ChatRepository
     let reviewRepository: ReviewRepository
+    let userRepository: UserRepository
+    let taskRepository: TaskRepository
     let currentUserId: String
 
     init(
         taskRepository: TaskRepository,
+        userRepository: UserRepository,
         applicationRepository: ApplicationRepository,
         chatRepository: ChatRepository,
         reviewRepository: ReviewRepository,
@@ -21,6 +24,8 @@ struct MyJobPostsView: View {
         self.applicationRepository = applicationRepository
         self.chatRepository = chatRepository
         self.reviewRepository = reviewRepository
+        self.userRepository = userRepository
+        self.taskRepository = taskRepository
         self.currentUserId = userId
 
         _viewModel = StateObject(
@@ -35,6 +40,7 @@ struct MyJobPostsView: View {
         Group {
             if viewModel.isLoading {
                 ProgressView()
+
             } else if let errorMessage = viewModel.errorMessage {
                 VStack(spacing: 12) {
                     Text("Error loading your job posts")
@@ -46,12 +52,14 @@ struct MyJobPostsView: View {
                         .multilineTextAlignment(.center)
                 }
                 .padding()
+
             } else if viewModel.tasks.isEmpty {
                 ContentUnavailableView(
                     "No job posts yet",
                     systemImage: "briefcase",
                     description: Text("Create a task and it will appear here.")
                 )
+
             } else {
                 List(viewModel.tasks) { task in
                     NavigationLink {
@@ -60,7 +68,9 @@ struct MyJobPostsView: View {
                             currentUserId: currentUserId,
                             applicationRepository: applicationRepository,
                             chatRepository: chatRepository,
-                            reviewRepository: reviewRepository
+                            reviewRepository: reviewRepository,
+                            userRepository: userRepository,
+                            taskRepository: taskRepository
                         )
                     } label: {
                         VStack(alignment: .leading, spacing: 8) {

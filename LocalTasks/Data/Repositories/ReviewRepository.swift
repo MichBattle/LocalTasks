@@ -13,4 +13,5 @@ protocol ReviewRepository {
     ) async throws
 
     func hasPendingReviews(userId: String) async throws -> Bool
+    func fetchReviews(for userId: String) async throws -> [ReviewDetailsItem]
 }
