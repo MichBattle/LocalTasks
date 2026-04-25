@@ -43,6 +43,7 @@
 			membershipExceptions = (
 				AppContainer.swift,
 				LocalTaskApp.swift,
+				LocalTasksIconComposer.icon,
 			);
 			target = 86F839C82F769505008C8DB2 /* LocalTasks */;
 		};
@@ -552,7 +553,7 @@
 		86F839EB2F769506008C8DB2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = LocalTasksIconComposer;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
@@ -585,7 +586,7 @@
 		86F839EC2F769506008C8DB2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = LocalTasksIconComposer;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
