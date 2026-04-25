@@ -4,7 +4,6 @@ import FirebaseAuth
 
 @MainActor
 final class TaskDetailViewModel: ObservableObject {
-    @Published var applicationMessage = ""
     @Published var isApplying = false
     @Published var errorMessage: String?
     @Published var successMessage: String?
@@ -64,7 +63,7 @@ final class TaskDetailViewModel: ObservableObject {
                 to: CreateApplicationInput(
                     taskId: task.id,
                     taskCreatorId: task.creatorId,
-                    message: applicationMessage
+                    message: nil
                 )
             )
 

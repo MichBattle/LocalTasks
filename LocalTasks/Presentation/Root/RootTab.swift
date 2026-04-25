@@ -9,11 +9,11 @@ enum RootTab: CaseIterable {
 
     var title: String {
         switch self {
-        case .home: return "Home"
-        case .map: return "Map"
+        case .home: return ""
+        case .map: return ""
         case .create: return ""
-        case .messages: return "Messages"
-        case .profile: return "Profile"
+        case .messages: return ""
+        case .profile: return ""
         }
     }
 

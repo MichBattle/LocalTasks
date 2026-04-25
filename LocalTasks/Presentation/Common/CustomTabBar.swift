@@ -2,20 +2,27 @@ import SwiftUI
 
 struct CustomTabBar: View {
     let selectedTab: RootTab
+    let hasUnreadMessages: Bool
     let onTabSelected: (RootTab) -> Void
 
     var body: some View {
         HStack(alignment: .bottom) {
             tabButton(for: .home)
+
             Spacer()
+
             tabButton(for: .map)
+
             Spacer()
 
             centerButton
 
             Spacer()
-            tabButton(for: .messages, showNotificationDot: true)
+
+            tabButton(for: .messages)
+
             Spacer()
+
             tabButton(for: .profile)
         }
         .padding(.horizontal, 26)
@@ -33,50 +40,41 @@ struct CustomTabBar: View {
         Button {
             onTabSelected(.create)
         } label: {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [AppColors.primaryLight, AppColors.primary],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 58, height: 58)
-                    .shadow(color: AppColors.primary.opacity(0.22), radius: 10, y: 5)
-
-                Image(systemName: "plus")
-                    .font(.system(size: 26, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
+            Image(systemName: "plus")
+                .font(.system(size: 30, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(width: 64, height: 64)
+                .background(AppColors.primary)
+                .clipShape(Circle())
+                .shadow(color: AppColors.primary.opacity(0.35), radius: 12, y: 6)
+                .offset(y: -18)
         }
-        .offset(y: -16)
+        .buttonStyle(.plain)
     }
 
-    @ViewBuilder
-    private func tabButton(for tab: RootTab, showNotificationDot: Bool = false) -> some View {
+    private func tabButton(for tab: RootTab) -> some View {
         Button {
             onTabSelected(tab)
         } label: {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 ZStack(alignment: .topTrailing) {
-                    Image(systemName: selectedTab == tab ? "\(tab.iconName).fill" : tab.iconName)
-                        .font(.system(size: 23, weight: .medium))
+                    Image(systemName: tab.iconName)
+                        .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(selectedTab == tab ? AppColors.primary : AppColors.textSecondary)
 
-                    if showNotificationDot {
+                    if tab == .messages && hasUnreadMessages {
                         Circle()
-                            .fill(.red)
+                            .fill(Color.red)
                             .frame(width: 10, height: 10)
-                            .offset(x: 6, y: -3)
+                            .offset(x: 6, y: -6)
                     }
                 }
 
                 Text(tab.title)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(selectedTab == tab ? AppColors.primary : AppColors.textSecondary)
             }
-            .frame(minWidth: 44)
+            .frame(width: 58)
         }
         .buttonStyle(.plain)
     }

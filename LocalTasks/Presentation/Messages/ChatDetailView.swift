@@ -8,6 +8,7 @@ struct ChatDetailView: View {
     let userRepository: UserRepository
     let reviewRepository: ReviewRepository
     let taskRepository: TaskRepository
+    let notificationRepository: NotificationRepository
 
     @StateObject private var viewModel: ChatDetailViewModel
 
@@ -17,7 +18,8 @@ struct ChatDetailView: View {
         repository: ChatRepository,
         userRepository: UserRepository,
         reviewRepository: ReviewRepository,
-        taskRepository: TaskRepository
+        taskRepository: TaskRepository,
+        notificationRepository: NotificationRepository
     ) {
         self.chat = chat
         self.currentUserId = currentUserId
@@ -25,6 +27,7 @@ struct ChatDetailView: View {
         self.userRepository = userRepository
         self.reviewRepository = reviewRepository
         self.taskRepository = taskRepository
+        self.notificationRepository = notificationRepository
 
         let otherUserId = chat.creatorId == currentUserId
             ? chat.applicantId
@@ -159,6 +162,13 @@ struct ChatDetailView: View {
         }
         .onAppear {
             viewModel.startListening()
+
+            Task {
+                try? await notificationRepository.markChatMessagesAsRead(
+                    for: currentUserId,
+                    chatId: chat.id
+                )
+            }
         }
         .onDisappear {
             viewModel.stopListening()

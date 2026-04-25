@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HomeHeaderView: View {
-    let notificationCount: Int
+    let hasUnreadNotifications: Bool
     let onNotificationsTap: () -> Void
 
     var body: some View {
@@ -26,14 +26,11 @@ struct HomeHeaderView: View {
                         .foregroundStyle(AppColors.textSecondary)
                         .frame(width: 58, height: 58)
 
-                    if notificationCount > 0 {
-                        Text("\(notificationCount)")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 24, height: 24)
-                            .background(Color.red)
-                            .clipShape(Circle())
-                            .offset(x: 4, y: -4)
+                    if hasUnreadNotifications {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 12, height: 12)
+                            .offset(x: -6, y: 6)
                     }
                 }
             }

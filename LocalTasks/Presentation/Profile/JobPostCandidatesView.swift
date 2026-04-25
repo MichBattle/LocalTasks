@@ -12,10 +12,12 @@ struct JobPostCandidatesView: View {
     @State private var applicationToReset: ApplicationDetailsItem?
     @State private var showCompleteConfirmation = false
 
+    private let applicationRepository: ApplicationRepository
     private let chatRepository: ChatRepository
-    private let userRepository: UserRepository
     private let reviewRepository: ReviewRepository
+    private let userRepository: UserRepository
     private let taskRepository: TaskRepository
+    private let notificationRepository: NotificationRepository
 
     init(
         task: TaskItem,
@@ -24,11 +26,18 @@ struct JobPostCandidatesView: View {
         chatRepository: ChatRepository,
         reviewRepository: ReviewRepository,
         userRepository: UserRepository,
-        taskRepository: TaskRepository
+        taskRepository: TaskRepository,
+        notificationRepository: NotificationRepository
     ) {
         self.task = task
         self.currentUserId = currentUserId
+        self.applicationRepository = applicationRepository
         self.chatRepository = chatRepository
+        self.reviewRepository = reviewRepository
+        self.userRepository = userRepository
+        self.taskRepository = taskRepository
+        self.notificationRepository = notificationRepository
+
         _viewModel = StateObject(
             wrappedValue: JobPostCandidatesViewModel(
                 task: task,
@@ -37,9 +46,6 @@ struct JobPostCandidatesView: View {
                 reviewRepository: reviewRepository
             )
         )
-        self.userRepository = userRepository
-        self.reviewRepository = reviewRepository
-        self.taskRepository = taskRepository
     }
 
     var body: some View {
@@ -71,6 +77,7 @@ struct JobPostCandidatesView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(application.applicantUsername)
                                 .font(.system(size: 17, weight: .bold))
+
                             Text(application.applicantCity)
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(AppColors.textSecondary)
@@ -80,6 +87,19 @@ struct JobPostCandidatesView: View {
 
                         Text(ratingString(application.applicantRatingAvg, count: application.applicantRatingCount))
                             .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(AppColors.primary)
+                    }
+
+                    NavigationLink {
+                        PublicUserProfileView(
+                            userId: application.applicantId,
+                            userRepository: userRepository,
+                            reviewRepository: reviewRepository,
+                            taskRepository: taskRepository
+                        )
+                    } label: {
+                        Text("View profile")
+                            .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(AppColors.primary)
                     }
 
@@ -142,13 +162,16 @@ struct JobPostCandidatesView: View {
                         repository: chatRepository,
                         userRepository: userRepository,
                         reviewRepository: reviewRepository,
-                        taskRepository: taskRepository
+                        taskRepository: taskRepository,
+                        notificationRepository: notificationRepository
                     )
                 },
                 isActive: Binding(
                     get: { selectedChat != nil },
                     set: { isActive in
-                        if !isActive { selectedChat = nil }
+                        if !isActive {
+                            selectedChat = nil
+                        }
                     }
                 )
             ) {
@@ -163,9 +186,12 @@ struct JobPostCandidatesView: View {
             Button("Annulla", role: .cancel) {
                 applicationToAccept = nil
             }
+
             Button("Accetta") {
                 if let application = applicationToAccept {
-                    Task { await viewModel.accept(application: application) }
+                    Task {
+                        await viewModel.accept(application: application)
+                    }
                 }
                 applicationToAccept = nil
             }
@@ -177,9 +203,12 @@ struct JobPostCandidatesView: View {
             Button("Annulla", role: .cancel) {
                 applicationToReject = nil
             }
+
             Button("Rifiuta", role: .destructive) {
                 if let application = applicationToReject {
-                    Task { await viewModel.reject(application: application) }
+                    Task {
+                        await viewModel.reject(application: application)
+                    }
                 }
                 applicationToReject = nil
             }
@@ -191,15 +220,19 @@ struct JobPostCandidatesView: View {
             Button("Annulla", role: .cancel) {
                 applicationToReset = nil
             }
+
             Button("Reset") {
                 if let application = applicationToReset {
-                    Task { await viewModel.reset(application: application) }
+                    Task {
+                        await viewModel.reset(application: application)
+                    }
                 }
                 applicationToReset = nil
             }
         }
         .alert("Vuoi veramente segnare il lavoro come completato?", isPresented: $showCompleteConfirmation) {
             Button("Annulla", role: .cancel) {}
+
             Button("Conferma") {
                 Task {
                     await viewModel.completeTask(currentUserId: currentUserId)
@@ -215,19 +248,27 @@ struct JobPostCandidatesView: View {
 
     private func statusText(_ status: ApplicationStatus) -> String {
         switch status {
-        case .pending: return "Pending"
-        case .accepted: return "Accepted"
-        case .rejected: return "Rejected"
-        case .cancelled: return "Cancelled"
+        case .pending:
+            return "Pending"
+        case .accepted:
+            return "Accepted"
+        case .rejected:
+            return "Rejected"
+        case .cancelled:
+            return "Cancelled"
         }
     }
 
     private func statusColor(_ status: ApplicationStatus) -> Color {
         switch status {
-        case .pending: return .orange
-        case .accepted: return .green
-        case .rejected: return .red
-        case .cancelled: return .gray
+        case .pending:
+            return .orange
+        case .accepted:
+            return .green
+        case .rejected:
+            return .red
+        case .cancelled:
+            return .gray
         }
     }
 }

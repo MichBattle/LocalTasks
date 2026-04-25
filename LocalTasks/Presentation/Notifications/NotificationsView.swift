@@ -3,11 +3,16 @@ import SwiftUI
 struct NotificationsView: View {
     @StateObject private var viewModel: NotificationsViewModel
 
+    let notificationRepository: NotificationRepository
+    let userId: String
+
     init(notificationRepository: NotificationRepository, userId: String) {
+        self.notificationRepository = notificationRepository
+        self.userId = userId
+
         _viewModel = StateObject(
             wrappedValue: NotificationsViewModel(
-                repository: notificationRepository,
-                userId: userId
+                repository: notificationRepository
             )
         )
     }
@@ -61,7 +66,7 @@ struct NotificationsView: View {
 
                             if !notification.isRead {
                                 Circle()
-                                    .fill(AppColors.primary)
+                                    .fill(Color.red)
                                     .frame(width: 9, height: 9)
                             }
                         }
@@ -83,7 +88,7 @@ struct NotificationsView: View {
             }
         }
         .onAppear {
-            viewModel.startListening()
+            viewModel.startListening(for: userId)
         }
         .onDisappear {
             viewModel.stopListening()

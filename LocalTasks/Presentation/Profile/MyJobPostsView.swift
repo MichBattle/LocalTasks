@@ -9,6 +9,7 @@ struct MyJobPostsView: View {
     let reviewRepository: ReviewRepository
     let userRepository: UserRepository
     let taskRepository: TaskRepository
+    let notificationRepository: NotificationRepository
     let currentUserId: String
 
     init(
@@ -17,6 +18,7 @@ struct MyJobPostsView: View {
         applicationRepository: ApplicationRepository,
         chatRepository: ChatRepository,
         reviewRepository: ReviewRepository,
+        notificationRepository: NotificationRepository,
         authViewModel: AuthViewModel,
         userId: String
     ) {
@@ -26,6 +28,7 @@ struct MyJobPostsView: View {
         self.reviewRepository = reviewRepository
         self.userRepository = userRepository
         self.taskRepository = taskRepository
+        self.notificationRepository = notificationRepository
         self.currentUserId = userId
 
         _viewModel = StateObject(
@@ -70,7 +73,8 @@ struct MyJobPostsView: View {
                             chatRepository: chatRepository,
                             reviewRepository: reviewRepository,
                             userRepository: userRepository,
-                            taskRepository: taskRepository
+                            taskRepository: taskRepository,
+                            notificationRepository: notificationRepository
                         )
                     } label: {
                         VStack(alignment: .leading, spacing: 8) {
@@ -101,17 +105,23 @@ struct MyJobPostsView: View {
 
     private func statusText(_ status: TaskStatus) -> String {
         switch status {
-        case .open: return "Open"
-        case .inProgress: return "In Progress"
-        case .completed: return "Completed"
+        case .open:
+            return "Open"
+        case .inProgress:
+            return "In Progress"
+        case .completed:
+            return "Completed"
         }
     }
 
     private func statusColor(_ status: TaskStatus) -> Color {
         switch status {
-        case .open: return .orange
-        case .inProgress: return .blue
-        case .completed: return .green
+        case .open:
+            return .orange
+        case .inProgress:
+            return .blue
+        case .completed:
+            return .green
         }
     }
 }

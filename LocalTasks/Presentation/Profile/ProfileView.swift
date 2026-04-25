@@ -8,6 +8,7 @@ struct ProfileView: View {
     let applicationRepository: ApplicationRepository
     let chatRepository: ChatRepository
     let reviewRepository: ReviewRepository
+    let notificationRepository: NotificationRepository
 
     let onLogout: () -> Void
 
@@ -47,7 +48,6 @@ struct ProfileView: View {
                             }
 
                             VStack(spacing: 14) {
-
                                 NavigationLink {
                                     PendingReviewsView(
                                         currentUserId: user.id,
@@ -74,6 +74,7 @@ struct ProfileView: View {
                                         applicationRepository: applicationRepository,
                                         chatRepository: chatRepository,
                                         reviewRepository: reviewRepository,
+                                        notificationRepository: notificationRepository,
                                         authViewModel: authViewModel,
                                         userId: user.id
                                     )
@@ -98,9 +99,10 @@ struct ProfileView: View {
                         }
                         .padding(.top, 12)
 
-                        Spacer()
+                        Spacer(minLength: 100)
                     }
                     .padding(24)
+                    .padding(.bottom, 100)
                 }
             }
             .navigationTitle("Profile")

@@ -131,15 +131,10 @@ struct TaskDetailView: View {
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(AppColors.textPrimary)
 
-            TextEditor(text: $viewModel.applicationMessage)
-                .frame(height: 110)
-                .padding(8)
-                .background(Color.white)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.gray.opacity(0.15), lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            Text("By applying, a conversation with the task creator will be opened automatically.")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(AppColors.textSecondary)
+                .lineSpacing(3)
 
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
@@ -188,7 +183,7 @@ struct TaskDetailView: View {
                     }
                 }
             }
-            .disabled(viewModel.isApplying || viewModel.hasAlreadyApplied)
+            .disabled(viewModel.isApplying || viewModel.hasAlreadyApplied || !viewModel.canApply)
         }
         .padding(20)
         .background(Color.white)

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabRootView: View {
     @ObservedObject var authViewModel: AuthViewModel
+    @StateObject private var notificationsViewModel: NotificationsViewModel
 
     private let userRepository: UserRepository
     private let taskRepository: TaskRepository
@@ -32,6 +33,12 @@ struct MainTabRootView: View {
         self.chatRepository = chatRepository
         self.reviewRepository = reviewRepository
         self.notificationRepository = notificationRepository
+
+        _notificationsViewModel = StateObject(
+            wrappedValue: NotificationsViewModel(
+                repository: notificationRepository
+            )
+        )
     }
 
     var body: some View {
@@ -43,6 +50,7 @@ struct MainTabRootView: View {
             if !isTabBarHidden {
                 CustomTabBar(
                     selectedTab: selectedTab,
+                    hasUnreadMessages: notificationsViewModel.unreadMessagesCount > 0,
                     onTabSelected: handleTabSelection
                 )
             }
@@ -77,6 +85,18 @@ struct MainTabRootView: View {
                 showTemporaryToast(message)
             }
         }
+        .onAppear {
+            if let userId = authViewModel.currentUser?.id {
+                notificationsViewModel.startListening(for: userId)
+            }
+        }
+        .onChange(of: authViewModel.currentUser?.id) { _, newUserId in
+            if let newUserId {
+                notificationsViewModel.startListening(for: newUserId)
+            } else {
+                notificationsViewModel.stopListening()
+            }
+        }
     }
 
     @ViewBuilder
@@ -91,6 +111,7 @@ struct MainTabRootView: View {
                 notificationRepository: notificationRepository,
                 userRepository: userRepository,
                 taskRepository: taskRepository,
+                hasUnreadNotifications: notificationsViewModel.unreadCount > 0,
                 onRequireAuth: { showAuthSheet = true }
             )
 
@@ -110,7 +131,11 @@ struct MainTabRootView: View {
                     repository: taskRepository,
                     reviewRepository: reviewRepository,
                     currentUserId: authViewModel.currentUser?.id
-                )
+                ),
+                onTaskCreated: {
+                    selectedTab = .home
+                    showTemporaryToast("Task created successfully")
+                }
             )
 
         case .messages:
@@ -120,6 +145,7 @@ struct MainTabRootView: View {
                 taskRepository: taskRepository,
                 chatRepository: chatRepository,
                 reviewRepository: reviewRepository,
+                notificationRepository: notificationRepository,
                 onExit: {
                     selectedTab = .home
                 }
@@ -133,6 +159,7 @@ struct MainTabRootView: View {
                 applicationRepository: applicationRepository,
                 chatRepository: chatRepository,
                 reviewRepository: reviewRepository,
+                notificationRepository: notificationRepository,
                 onLogout: handleLogout
             )
         }
@@ -145,6 +172,24 @@ struct MainTabRootView: View {
     private func handleTabSelection(_ tab: RootTab) {
         if requiresAuthentication(tab), !authViewModel.isAuthenticated {
             showAuthSheet = true
+            return
+        }
+
+        if tab == .create {
+            Task {
+                let userId = authViewModel.currentUser?.id ?? ""
+
+                let hasPendingReviews = (try? await reviewRepository.hasPendingReviews(
+                    userId: userId
+                )) ?? false
+
+                if hasPendingReviews {
+                    showTemporaryToast("You must complete pending reviews first")
+                } else {
+                    selectedTab = .create
+                }
+            }
+
             return
         }
 
@@ -161,6 +206,7 @@ struct MainTabRootView: View {
     }
 
     private func handleLogout() {
+        notificationsViewModel.stopListening()
         selectedTab = .home
         showAuthSheet = true
     }

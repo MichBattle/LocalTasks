@@ -8,10 +8,10 @@ final class NotificationsViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let repository: NotificationRepository
-    private let userId: String
+    private var userId: String = ""
     private var listener: (any ListenerRegistration)?
 
-    init(repository: NotificationRepository, userId: String) {
+    init(repository: NotificationRepository, userId: String = "") {
         self.repository = repository
         self.userId = userId
     }
@@ -20,9 +20,18 @@ final class NotificationsViewModel: ObservableObject {
         notifications.filter { !$0.isRead }.count
     }
 
-    func startListening() {
+    var unreadMessagesCount: Int {
+        notifications.filter { !$0.isRead && $0.type == .newMessage }.count
+    }
+
+    func startListening(for userId: String) {
         guard !userId.isEmpty else { return }
 
+        if self.userId == userId, listener != nil {
+            return
+        }
+
+        self.userId = userId
         listener?.remove()
 
         listener = repository.observeNotifications(for: userId) { [weak self] result in
@@ -55,6 +64,8 @@ final class NotificationsViewModel: ObservableObject {
     }
 
     func markAllAsRead() async {
+        guard !userId.isEmpty else { return }
+
         do {
             try await repository.markAllAsRead(for: userId)
         } catch {

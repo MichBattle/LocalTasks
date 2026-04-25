@@ -5,8 +5,14 @@ struct CreateTaskView: View {
     @StateObject private var viewModel: CreateTaskViewModel
     @StateObject private var addressViewModel = AddressSearchViewModel()
 
-    init(viewModel: CreateTaskViewModel) {
+    let onTaskCreated: () -> Void
+
+    init(
+        viewModel: CreateTaskViewModel,
+        onTaskCreated: @escaping () -> Void
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.onTaskCreated = onTaskCreated
     }
 
     var body: some View {
@@ -118,23 +124,19 @@ struct CreateTaskView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
-                        if let successMessage = viewModel.successMessage {
-                            Text(successMessage)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(.green)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-
                         Button {
                             Task {
                                 let created = await viewModel.createTask(
                                     address: addressViewModel.selectedAddress
                                 )
+
                                 if created {
                                     addressViewModel.query = ""
                                     addressViewModel.selectedAddress = nil
                                     addressViewModel.completions = []
                                     addressViewModel.errorMessage = nil
+
+                                    onTaskCreated()
                                 }
                             }
                         } label: {

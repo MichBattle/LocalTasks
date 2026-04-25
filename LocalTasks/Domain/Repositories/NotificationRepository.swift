@@ -11,4 +11,6 @@ protocol NotificationRepository {
 
     func markAsRead(notificationId: String) async throws
     func markAllAsRead(for userId: String) async throws
+
+    func markChatMessagesAsRead(for userId: String, chatId: String) async throws
 }

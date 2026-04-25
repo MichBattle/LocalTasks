@@ -2,18 +2,19 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel: HomeViewModel
-    @StateObject private var notificationsViewModel: NotificationsViewModel
 
     @ObservedObject var authViewModel: AuthViewModel
 
     let applicationRepository: ApplicationRepository
     let reviewRepository: ReviewRepository
     let notificationRepository: NotificationRepository
-    let onRequireAuth: () -> Void
     let userRepository: UserRepository
     let taskRepository: TaskRepository
+    let hasUnreadNotifications: Bool
+    let onRequireAuth: () -> Void
 
     @State private var showNotifications = false
+    @State private var showCategories = true
 
     init(
         viewModel: HomeViewModel,
@@ -23,17 +24,10 @@ struct HomeView: View {
         notificationRepository: NotificationRepository,
         userRepository: UserRepository,
         taskRepository: TaskRepository,
+        hasUnreadNotifications: Bool,
         onRequireAuth: @escaping () -> Void
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
-
-        let userId = authViewModel.currentUser?.id ?? ""
-        _notificationsViewModel = StateObject(
-            wrappedValue: NotificationsViewModel(
-                repository: notificationRepository,
-                userId: userId
-            )
-        )
 
         self.authViewModel = authViewModel
         self.applicationRepository = applicationRepository
@@ -41,6 +35,7 @@ struct HomeView: View {
         self.notificationRepository = notificationRepository
         self.userRepository = userRepository
         self.taskRepository = taskRepository
+        self.hasUnreadNotifications = hasUnreadNotifications
         self.onRequireAuth = onRequireAuth
     }
 
@@ -52,7 +47,7 @@ struct HomeView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 24) {
                         HomeHeaderView(
-                            notificationCount: notificationsViewModel.unreadCount
+                            hasUnreadNotifications: hasUnreadNotifications
                         ) {
                             if authViewModel.isAuthenticated {
                                 showNotifications = true
@@ -61,19 +56,7 @@ struct HomeView: View {
                             }
                         }
 
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 16) {
-                                ForEach(viewModel.categories) { category in
-                                    CategoryChipView(
-                                        category: category,
-                                        isSelected: viewModel.selectedCategory == category
-                                    ) {
-                                        viewModel.toggleCategory(category)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                        }
+                        categoriesSection
 
                         LazyVStack(spacing: 18) {
                             ForEach(viewModel.filteredTasks) { task in
@@ -108,15 +91,48 @@ struct HomeView: View {
             .task {
                 await viewModel.load()
             }
-            .onAppear {
-                if authViewModel.isAuthenticated {
-                    notificationsViewModel.startListening()
-                }
-            }
-            .onDisappear {
-                notificationsViewModel.stopListening()
-            }
             .navigationBarHidden(true)
+        }
+    }
+
+    private var categoriesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    showCategories.toggle()
+                }
+            } label: {
+                HStack {
+                    Text("Categories")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(AppColors.textPrimary)
+
+                    Spacer()
+
+                    Image(systemName: showCategories ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+                .padding(.horizontal, 20)
+            }
+            .buttonStyle(.plain)
+
+            if showCategories {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(viewModel.categories) { category in
+                            CategoryChipView(
+                                category: category,
+                                isSelected: viewModel.selectedCategory == category
+                            ) {
+                                viewModel.toggleCategory(category)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
     }
 }

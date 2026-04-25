@@ -64,6 +64,23 @@ final class FirebaseNotificationRepository: NotificationRepository {
         try await batch.commit()
     }
 
+    func markChatMessagesAsRead(for userId: String, chatId: String) async throws {
+        let snapshot = try await db.collection("notifications")
+            .whereField("recipientId", isEqualTo: userId)
+            .whereField("relatedChatId", isEqualTo: chatId)
+            .whereField("type", isEqualTo: AppNotificationType.newMessage.rawValue)
+            .whereField("isRead", isEqualTo: false)
+            .getDocuments()
+
+        let batch = db.batch()
+
+        for document in snapshot.documents {
+            batch.updateData(["isRead": true], forDocument: document.reference)
+        }
+
+        try await batch.commit()
+    }
+
     private func mapNotification(_ document: QueryDocumentSnapshot) -> AppNotification? {
         let data = document.data()
 
