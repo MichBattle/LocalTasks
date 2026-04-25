@@ -6,22 +6,24 @@ final class HomeViewModel: ObservableObject {
     @Published var categories: [TaskCategory] = TaskCategory.allCases
     @Published var selectedCategory: TaskCategory?
     @Published var tasks: [TaskItem] = []
-    @Published var isLoading = false
+    @Published var isLoading: Bool = false
     @Published var errorMessage: String?
 
     private let repository: TaskRepository
+    private let currentUserId: String?
 
-    init(repository: TaskRepository) {
+    init(repository: TaskRepository, currentUserId: String? = nil) {
         self.repository = repository
+        self.currentUserId = currentUserId
     }
 
-    func load(city: String? = nil) async {
+    func load() async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            tasks = try await repository.fetchFeedTasks(city: city)
+            tasks = try await repository.fetchFeedTasks(city: nil)
         } catch {
             tasks = []
             errorMessage = error.localizedDescription
@@ -29,8 +31,11 @@ final class HomeViewModel: ObservableObject {
     }
 
     var filteredTasks: [TaskItem] {
-        guard let selectedCategory else { return tasks }
-        return tasks.filter { $0.category == selectedCategory }
+        tasks.filter { task in
+            let isNotMine = task.creatorId != currentUserId
+            let categoryMatches = selectedCategory == nil || task.category == selectedCategory
+            return isNotMine && categoryMatches
+        }
     }
 
     func toggleCategory(_ category: TaskCategory) {

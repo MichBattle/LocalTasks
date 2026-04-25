@@ -12,9 +12,11 @@ final class TasksMapViewModel: ObservableObject {
     @Published var selectedCategory: TaskCategory?
 
     private let taskRepository: TaskRepository
+    private let currentUserId: String?
 
-    init(taskRepository: TaskRepository) {
+    init(taskRepository: TaskRepository, currentUserId: String? = nil) {
         self.taskRepository = taskRepository
+        self.currentUserId = currentUserId
     }
 
     func load() async {
@@ -30,12 +32,18 @@ final class TasksMapViewModel: ObservableObject {
     }
 
     var availableCities: [String] {
-        Array(Set(tasks.map(\.city)))
+        Array(Set(visibleTasks.map(\.city)))
             .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
-    var filteredTasks: [TaskItem] {
+    var visibleTasks: [TaskItem] {
         tasks.filter { task in
+            task.creatorId != currentUserId
+        }
+    }
+
+    var filteredTasks: [TaskItem] {
+        visibleTasks.filter { task in
             let cityMatches = selectedCity == nil || task.city == selectedCity
             let categoryMatches = selectedCategory == nil || task.category == selectedCategory
             return cityMatches && categoryMatches

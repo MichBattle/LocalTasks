@@ -8,6 +8,9 @@ final class JobPostCandidatesViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var successMessage: String?
 
+    @Published var isCompletingTask = false
+    @Published var didCompleteTask = false
+
     private let task: TaskItem
     private let applicationRepository: ApplicationRepository
     private let chatRepository: ChatRepository
@@ -23,10 +26,11 @@ final class JobPostCandidatesViewModel: ObservableObject {
         self.applicationRepository = applicationRepository
         self.chatRepository = chatRepository
         self.reviewRepository = reviewRepository
+        self.didCompleteTask = task.status == .completed
     }
 
     var isTaskCompleted: Bool {
-        task.status == .completed
+        task.status == .completed || didCompleteTask
     }
 
     func load() async {
@@ -94,8 +98,19 @@ final class JobPostCandidatesViewModel: ObservableObject {
     }
 
     func completeTask(currentUserId: String) async {
+        guard !isCompletingTask && !isTaskCompleted else { return }
+
+        isCompletingTask = true
+        errorMessage = nil
+        successMessage = nil
+
+        defer {
+            isCompletingTask = false
+        }
+
         do {
             try await reviewRepository.completeTask(task: task, currentUserId: currentUserId)
+            didCompleteTask = true
             successMessage = "Task marked as completed. Reviews are now required."
         } catch {
             errorMessage = error.localizedDescription

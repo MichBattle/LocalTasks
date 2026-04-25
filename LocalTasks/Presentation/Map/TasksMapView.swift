@@ -26,7 +26,10 @@ struct TasksMapView: View {
         onRequireAuth: @escaping () -> Void
     ) {
         _viewModel = StateObject(
-            wrappedValue: TasksMapViewModel(taskRepository: taskRepository)
+            wrappedValue: TasksMapViewModel(
+                taskRepository: taskRepository,
+                currentUserId: authViewModel.currentUser?.id
+            )
         )
 
         self.taskRepository = taskRepository

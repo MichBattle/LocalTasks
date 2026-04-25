@@ -64,11 +64,21 @@ struct JobPostCandidatesView: View {
                 Button {
                     showCompleteConfirmation = true
                 } label: {
-                    Text("Mark task as completed")
-                        .font(.system(size: 16, weight: .bold))
-                        .frame(maxWidth: .infinity)
+                    HStack {
+                        Spacer()
+
+                        if viewModel.isCompletingTask {
+                            ProgressView()
+                        } else {
+                            Text(viewModel.isTaskCompleted ? "Task completed" : "Mark task as completed")
+                                .font(.system(size: 16, weight: .bold))
+                        }
+
+                        Spacer()
+                    }
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(viewModel.isCompletingTask || viewModel.isTaskCompleted)
             }
 
             ForEach(viewModel.applications) { application in

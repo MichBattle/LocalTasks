@@ -72,6 +72,7 @@
 				Profile/JobPostCandidatesViewModel.swift,
 				Profile/MyApplicationsView.swift,
 				Profile/MyJobPostsView.swift,
+				Profile/MyReviews.swift,
 				Profile/PendingReviewsView.swift,
 				Profile/PendingReviewsViewModel.swift,
 				Profile/ProfileApplicationsViewModel.swift,
@@ -558,6 +559,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TCWMW4U24D;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -591,6 +593,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TCWMW4U24D;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

@@ -66,10 +66,12 @@ final class FirebaseApplicationRepository: ApplicationRepository {
             applicantId: currentUser.uid
         )
 
+        let automaticMessage = "Ciao sono \(applicantUsername), mi applico per \(taskTitle)"
+
         try await sendSystemMessage(
             chatId: chat.id,
             senderId: currentUser.uid,
-            text: "Ciao sono \(applicantUsername), mi applico per \(taskTitle)"
+            text: automaticMessage
         )
 
         try await notificationRepository.createNotification(
@@ -78,6 +80,17 @@ final class FirebaseApplicationRepository: ApplicationRepository {
                 type: .newApplication,
                 title: "New application",
                 message: "\(applicantUsername) applied to \(taskTitle)",
+                relatedTaskId: input.taskId,
+                relatedChatId: chat.id
+            )
+        )
+
+        try await notificationRepository.createNotification(
+            CreateNotificationInput(
+                recipientId: input.taskCreatorId,
+                type: .newMessage,
+                title: "New message",
+                message: "\(applicantUsername) sent you a message",
                 relatedTaskId: input.taskId,
                 relatedChatId: chat.id
             )
@@ -187,6 +200,10 @@ final class FirebaseApplicationRepository: ApplicationRepository {
         let applicantData = applicantSnapshot.data() ?? [:]
         let applicantUsername = applicantData["username"] as? String ?? "This user"
 
+        let creatorSnapshot = try await db.collection("users").document(creatorId).getDocument()
+        let creatorData = creatorSnapshot.data() ?? [:]
+        let creatorUsername = creatorData["username"] as? String ?? "Task creator"
+
         let batch = db.batch()
 
         batch.updateData([
@@ -260,6 +277,17 @@ final class FirebaseApplicationRepository: ApplicationRepository {
                 type: notificationType,
                 title: notificationTitle,
                 message: text,
+                relatedTaskId: taskId,
+                relatedChatId: chat.id
+            )
+        )
+
+        try await notificationRepository.createNotification(
+            CreateNotificationInput(
+                recipientId: applicantId,
+                type: .newMessage,
+                title: "New message",
+                message: "\(creatorUsername) sent you a message",
                 relatedTaskId: taskId,
                 relatedChatId: chat.id
             )

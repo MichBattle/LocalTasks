@@ -9,6 +9,7 @@ struct ProfileView: View {
     let chatRepository: ChatRepository
     let reviewRepository: ReviewRepository
     let notificationRepository: NotificationRepository
+    let onProfileSubscreenHiddenChange: (Bool) -> Void
 
     let onLogout: () -> Void
 
@@ -51,10 +52,25 @@ struct ProfileView: View {
                                 NavigationLink {
                                     PendingReviewsView(
                                         currentUserId: user.id,
+                                        reviewRepository: reviewRepository,
+                                        onExit: {
+                                            onProfileSubscreenHiddenChange(false)
+                                        }
+                                    )
+                                    .onAppear {
+                                        onProfileSubscreenHiddenChange(true)
+                                    }
+                                } label: {
+                                    profileActionCard(title: "Pending Reviews", icon: "star.bubble")
+                                }
+
+                                NavigationLink {
+                                    MyReviewsView(
+                                        currentUserId: user.id,
                                         reviewRepository: reviewRepository
                                     )
                                 } label: {
-                                    profileActionCard(title: "Pending Reviews", icon: "star.bubble")
+                                    profileActionCard(title: "My Reviews", icon: "star.fill")
                                 }
 
                                 NavigationLink {

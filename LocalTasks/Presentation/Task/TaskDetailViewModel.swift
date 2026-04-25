@@ -55,7 +55,7 @@ final class TaskDetailViewModel: ObservableObject {
         do {
             let hasPending = try await reviewRepository.hasPendingReviews(userId: uid)
             if hasPending {
-                errorMessage = "You must complete your pending reviews before applying to a new task"
+                errorMessage = "You must complete your pending reviews before applying to a new task. Profile > Pending Reviews"
                 return
             }
 

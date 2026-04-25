@@ -14,7 +14,6 @@ struct HomeView: View {
     let onRequireAuth: () -> Void
 
     @State private var showNotifications = false
-    @State private var showCategories = true
 
     init(
         viewModel: HomeViewModel,
@@ -97,41 +96,18 @@ struct HomeView: View {
 
     private var categoriesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    showCategories.toggle()
-                }
-            } label: {
-                HStack {
-                    Text("Categories")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(AppColors.textPrimary)
-
-                    Spacer()
-
-                    Image(systemName: showCategories ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(AppColors.textSecondary)
-                }
-                .padding(.horizontal, 20)
-            }
-            .buttonStyle(.plain)
-
-            if showCategories {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 16) {
-                        ForEach(viewModel.categories) { category in
-                            CategoryChipView(
-                                category: category,
-                                isSelected: viewModel.selectedCategory == category
-                            ) {
-                                viewModel.toggleCategory(category)
-                            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(viewModel.categories) { category in
+                        CategoryChipView(
+                            category: category,
+                            isSelected: viewModel.selectedCategory == category
+                        ) {
+                            viewModel.toggleCategory(category)
                         }
                     }
-                    .padding(.horizontal, 20)
                 }
-                .transition(.move(edge: .top).combined(with: .opacity))
+                .padding(.horizontal, 20)
             }
         }
     }

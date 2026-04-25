@@ -94,6 +94,21 @@ final class FirebaseReviewRepository: ReviewRepository {
                 relatedChatId: chatId
             )
         )
+
+        if let chatId {
+            let creatorUsername = try await fetchUsername(userId: task.creatorId)
+
+            try await notificationRepository.createNotification(
+                CreateNotificationInput(
+                    recipientId: acceptedUserId,
+                    type: .newMessage,
+                    title: "New message",
+                    message: "\(creatorUsername) sent you a message",
+                    relatedTaskId: task.id,
+                    relatedChatId: chatId
+                )
+            )
+        }
     }
 
     func fetchPendingReviews(for userId: String) async throws -> [PendingReviewDetailsItem] {
@@ -217,46 +232,6 @@ final class FirebaseReviewRepository: ReviewRepository {
         return !snapshot.documents.isEmpty
     }
 
-    private func notifyChatAboutCompletion(
-        task: TaskItem,
-        acceptedUserId: String,
-        now: Date
-    ) async throws -> String? {
-        let chatSnapshot = try await db.collection("chats")
-            .whereField("taskId", isEqualTo: task.id)
-            .whereField("creatorId", isEqualTo: task.creatorId)
-            .whereField("applicantId", isEqualTo: acceptedUserId)
-            .limit(to: 1)
-            .getDocuments()
-
-        guard let chatDocument = chatSnapshot.documents.first else {
-            return nil
-        }
-
-        let chatRef = db.collection("chats").document(chatDocument.documentID)
-        let messageRef = chatRef.collection("messages").document()
-        let completionText = "Il lavoro \"\(task.title)\" è stato segnato come completato. Ora entrambi dovete lasciare una recensione."
-
-        let notifyBatch = db.batch()
-
-        notifyBatch.setData([
-            "senderId": task.creatorId,
-            "text": completionText,
-            "createdAt": Timestamp(date: now),
-            "isRead": false
-        ], forDocument: messageRef)
-
-        notifyBatch.updateData([
-            "lastMessageText": completionText,
-            "lastMessageSenderId": task.creatorId,
-            "lastMessageAt": Timestamp(date: now)
-        ], forDocument: chatRef)
-
-        try await notifyBatch.commit()
-
-        return chatDocument.documentID
-    }
-    
     func fetchReviews(for userId: String) async throws -> [ReviewDetailsItem] {
         let snapshot = try await db.collection("reviews")
             .whereField("reviewedUserId", isEqualTo: userId)
@@ -299,5 +274,54 @@ final class FirebaseReviewRepository: ReviewRepository {
         }
 
         return result
+    }
+
+    private func notifyChatAboutCompletion(
+        task: TaskItem,
+        acceptedUserId: String,
+        now: Date
+    ) async throws -> String? {
+        let chatSnapshot = try await db.collection("chats")
+            .whereField("taskId", isEqualTo: task.id)
+            .whereField("creatorId", isEqualTo: task.creatorId)
+            .whereField("applicantId", isEqualTo: acceptedUserId)
+            .limit(to: 1)
+            .getDocuments()
+
+        guard let chatDocument = chatSnapshot.documents.first else {
+            return nil
+        }
+
+        let chatRef = db.collection("chats").document(chatDocument.documentID)
+        let messageRef = chatRef.collection("messages").document()
+        let completionText = "Il lavoro \"\(task.title)\" è stato segnato come completato. Ora entrambi dovete lasciare una recensione."
+
+        let notifyBatch = db.batch()
+
+        notifyBatch.setData([
+            "senderId": task.creatorId,
+            "text": completionText,
+            "createdAt": Timestamp(date: now),
+            "isRead": false
+        ], forDocument: messageRef)
+
+        notifyBatch.updateData([
+            "lastMessageText": completionText,
+            "lastMessageSenderId": task.creatorId,
+            "lastMessageAt": Timestamp(date: now)
+        ], forDocument: chatRef)
+
+        try await notifyBatch.commit()
+
+        return chatDocument.documentID
+    }
+
+    private func fetchUsername(userId: String) async throws -> String {
+        let snapshot = try await db.collection("users")
+            .document(userId)
+            .getDocument()
+
+        let data = snapshot.data() ?? [:]
+        return data["username"] as? String ?? "Someone"
     }
 }

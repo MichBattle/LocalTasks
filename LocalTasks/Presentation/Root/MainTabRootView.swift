@@ -16,6 +16,7 @@ struct MainTabRootView: View {
 
     @State private var toastMessage: String?
     @State private var showToast = false
+    @State private var hideTabBarForProfileSubscreen = false
 
     init(
         authViewModel: AuthViewModel,
@@ -104,7 +105,10 @@ struct MainTabRootView: View {
         switch selectedTab {
         case .home:
             HomeView(
-                viewModel: HomeViewModel(repository: taskRepository),
+                viewModel: HomeViewModel(
+                    repository: taskRepository,
+                    currentUserId: authViewModel.currentUser?.id
+                ),
                 authViewModel: authViewModel,
                 applicationRepository: applicationRepository,
                 reviewRepository: reviewRepository,
@@ -160,13 +164,16 @@ struct MainTabRootView: View {
                 chatRepository: chatRepository,
                 reviewRepository: reviewRepository,
                 notificationRepository: notificationRepository,
+                onProfileSubscreenHiddenChange: { hidden in
+                    hideTabBarForProfileSubscreen = hidden
+                },
                 onLogout: handleLogout
             )
         }
     }
 
     private var isTabBarHidden: Bool {
-        selectedTab == .messages
+        selectedTab == .messages || hideTabBarForProfileSubscreen
     }
 
     private func handleTabSelection(_ tab: RootTab) {
@@ -184,7 +191,7 @@ struct MainTabRootView: View {
                 )) ?? false
 
                 if hasPendingReviews {
-                    showTemporaryToast("You must complete pending reviews first")
+                    showTemporaryToast("You must complete pending reviews first. Profile > Pending Reviews")
                 } else {
                     selectedTab = .create
                 }
